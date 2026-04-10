@@ -10,7 +10,7 @@ set -eu
 
 REPO="ikuaidev/ikuai-cli"
 BINARY="ikuai-cli"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="${HOME}/.local/bin"
 VERSION=""
 
 # ── Parse flags ──────────────────────────────────────────────────────
@@ -77,18 +77,21 @@ fi
 tar -xzf "${ARCHIVE}"
 
 # Install
-if [ -w "$INSTALL_DIR" ]; then
-  mv "${BINARY}" "${INSTALL_DIR}/${BINARY}"
-else
-  echo "Installing to ${INSTALL_DIR} (requires sudo)..."
-  sudo mv "${BINARY}" "${INSTALL_DIR}/${BINARY}"
-fi
-
+mkdir -p "$INSTALL_DIR"
+mv "${BINARY}" "${INSTALL_DIR}/${BINARY}"
 chmod +x "${INSTALL_DIR}/${BINARY}"
 
 echo ""
 echo "✓ ${BINARY} ${VERSION} installed to ${INSTALL_DIR}/${BINARY}"
 echo ""
+
+# Remind user to add to PATH if needed
+case ":${PATH}:" in
+  *":${INSTALL_DIR}:"*) ;;
+  *) echo "Add to PATH: export PATH=\"${INSTALL_DIR}:\$PATH\""
+     echo "" ;;
+esac
+
 echo "Get started:"
 echo "  ${BINARY} auth set-url https://192.168.1.1"
 echo "  ${BINARY} auth set-token <your-token>"
