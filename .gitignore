@@ -1,0 +1,13 @@
+# Internal files (not for GitHub)
+CLAUDE.md
+.claude/
+document/
+
+# Build artifacts
+dist/
+ikuai-cli
+.gocache/
+*.test
+*.out
+coverage.out
+.DS_Store
