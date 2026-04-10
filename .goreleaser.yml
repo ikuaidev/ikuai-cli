@@ -1,0 +1,47 @@
+version: 2
+
+project_name: ikuai-cli
+
+builds:
+  - id: ikuai-cli
+    main: ./cmd/ikuai-cli
+    binary: ikuai-cli
+    ldflags:
+      - -s -w
+      - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Version={{ .Version }}
+      - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Commit={{ .Commit }}
+      - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Date={{ .Date }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - id: unix
+    ids:
+      - ikuai-cli
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  draft: false
+
+changelog:
+  use: git
