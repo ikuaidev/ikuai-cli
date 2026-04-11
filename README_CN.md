@@ -59,6 +59,10 @@ ikuai-cli completion powershell > ikuai-cli.ps1
 
 </details>
 
+## 从路由器中申请 Token 的方法
+
+![第一步](docs/images/token-step1.png)
+
 ## 快速开始
 
 ### 1. 认证
@@ -152,7 +156,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和 7 个领域 [skills](./skills/)，
 | [users](skills/users.md) | 在线用户、踢下线、账户、套餐 |
 | [security](skills/security.md) | ACL、MAC 过滤、URL 过滤、域名黑名单 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |
-| [system](skills/system.md) | 系统配置、定时重启、远程访问、VRRP、密码重置 |
+| [system](skills/system.md) | 系统配置、定时任务、远程访问、VRRP、SSH 重置 |
 | [batch](skills/batch.md) | 组合工作流：初始化、批量 DHCP、配置备份 |
 
 ### 安装 Skills
@@ -185,7 +189,7 @@ ikuai-cli monitor system --format json
 ikuai-cli users online --format json | jq '.[] | {ip, mac, username}'
 ```
 
-使用 `--format yaml` 获取节省 token 的输出。
+使用 `--format yaml` 获取节省 token 的输出（当不需要完整 JSON 精度时）。
 
 ## 开发
 

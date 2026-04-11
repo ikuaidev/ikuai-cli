@@ -59,6 +59,10 @@ ikuai-cli completion powershell > ikuai-cli.ps1
 
 </details>
 
+## How to Get a Token from the Router
+
+![Step 1](docs/images/token-step1.png)
+
 ## Quick Start
 
 ### 1. Authenticate
