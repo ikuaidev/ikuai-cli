@@ -80,6 +80,13 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			required := []string{"name"}
+			if valueKey != "" {
+				required = append(required, "value")
+			}
+			if err := cliapp.RequireFlags(cmd, required...); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, map[string]string{"name": "group_name"})
 			if err != nil {

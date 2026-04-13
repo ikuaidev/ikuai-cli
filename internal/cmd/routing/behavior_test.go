@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -85,7 +86,7 @@ func TestStreamFiveTupleCreateSendsExpectedJSONBody(t *testing.T) {
 			}
 			// writeCmd merges createDefaults into the body, so we check key fields.
 			bs := string(body)
-			for _, want := range []string{`"gateway":"wan2"`, `"name":"office-stream"`, `"protocol":"any"`, `"prio":31`} {
+			for _, want := range []string{`"interface":"wan2"`, `"tagname":"office-stream"`, `"protocol":"any"`, `"prio":31`} {
 				if !bytes.Contains(body, []byte(want)) {
 					t.Fatalf("body missing %s: %s", want, bs)
 				}
@@ -96,7 +97,7 @@ func TestStreamFiveTupleCreateSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"stream", "five-tuple", "create", "--data", `{"name":"office-stream","gateway":"wan2"}`})
+	cmd.SetArgs([]string{"stream", "five-tuple", "create", "--name", "office-stream", "--interface", "wan2"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -105,6 +106,42 @@ func TestStreamFiveTupleCreateSendsExpectedJSONBody(t *testing.T) {
 	want := "{\"message\":\"created\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestStaticCreateMissingRequiredFlags(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"static", "create", "--name", "test"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing required flags")
+	}
+	if !strings.Contains(err.Error(), "missing required flag") {
+		t.Fatalf("error = %q, want it to contain 'missing required flag'", err.Error())
+	}
+}
+
+func TestStreamDomainToggleMissingEnabled(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"stream", "domain", "toggle", "1"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing --enabled")
+	}
+	if !strings.Contains(err.Error(), "missing required flag: --enabled") {
+		t.Fatalf("error = %q, want 'missing required flag: --enabled'", err.Error())
 	}
 }
 

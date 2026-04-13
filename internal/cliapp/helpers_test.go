@@ -1,6 +1,7 @@
 package cliapp
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -190,6 +191,76 @@ func TestParseJSON_Invalid(t *testing.T) {
 	_, err := ParseJSON("bad")
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestRequireFlags_AllChanged(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("name", "", "")
+	cmd.Flags().String("interface", "", "")
+	_ = cmd.Flags().Set("name", "foo")
+	_ = cmd.Flags().Set("interface", "eth0")
+	if err := RequireFlags(cmd, "name", "interface"); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+}
+
+func TestRequireFlags_OneMissing(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("name", "", "")
+	err := RequireFlags(cmd, "name")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var valErr *ValidationError
+	if !errors.As(err, &valErr) {
+		t.Fatalf("expected ValidationError, got %T", err)
+	}
+	if valErr.Message != "missing required flag: --name" {
+		t.Fatalf("unexpected message: %q", valErr.Message)
+	}
+}
+
+func TestRequireFlags_MultipleMissing(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("name", "", "")
+	cmd.Flags().String("interface", "", "")
+	err := RequireFlags(cmd, "name", "interface")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var valErr *ValidationError
+	if !errors.As(err, &valErr) {
+		t.Fatalf("expected ValidationError, got %T", err)
+	}
+	if valErr.Message != "missing required flags: --name, --interface" {
+		t.Fatalf("unexpected message: %q", valErr.Message)
+	}
+}
+
+func TestRequireFlags_EmptyList(t *testing.T) {
+	cmd := &cobra.Command{}
+	if err := RequireFlags(cmd); err != nil {
+		t.Fatalf("expected nil for empty flag list, got %v", err)
+	}
+}
+
+func TestRequireFlags_PartiallySet(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("name", "", "")
+	cmd.Flags().String("interface", "", "")
+	_ = cmd.Flags().Set("name", "foo")
+	// interface not set
+	err := RequireFlags(cmd, "name", "interface")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	var valErr *ValidationError
+	if !errors.As(err, &valErr) {
+		t.Fatalf("expected ValidationError, got %T", err)
+	}
+	if valErr.Message != "missing required flag: --interface" {
+		t.Fatalf("unexpected message: %q", valErr.Message)
 	}
 }
 

@@ -231,9 +231,10 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 
 	securityCmd.AddCommand(secGroup(app, "acl", "IP ACL rules", "security/acl-rules", true, aclFieldMap, secGroupOpts{
-		createDefaults: aclCreateDefaults,
-		defaultColumns: []string{"id", "src_addr", "dst_addr", "src_port", "dst_port", "tagname", "action", "protocol", "enabled"},
-		addrFields:     aclAddrFields,
+		createDefaults:      aclCreateDefaults,
+		defaultColumns:      []string{"id", "src_addr", "dst_addr", "src_port", "dst_port", "tagname", "action", "protocol", "enabled"},
+		addrFields:          aclAddrFields,
+		requiredCreateFlags: []string{"name", "action", "protocol"},
 	}))
 
 	macCmd := &cobra.Command{Use: "mac", Short: "MAC access control"}
@@ -259,36 +260,44 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			return app.APIClient.Put(cliapp.APIBase+"/security/mac-mode", body)
 		}),
 	)
-	addSecCRUD(app, macCmd, "security/mac-rules", false, macFieldMap, macCreateDefaults, nil, nil)
+	addSecCRUD(app, macCmd, "security/mac-rules", false, macFieldMap, macCreateDefaults, nil, nil, []string{"name", "mac"})
 	securityCmd.AddCommand(macCmd)
 
 	securityCmd.AddCommand(secGroup(app, "l7", "L7 application-layer rules", "security/app-protocols/professional/rules", true, l7FieldMap, secGroupOpts{
-		createDefaults: l7CreateDefaults,
-		addrFields:     l7AddrFields,
+		createDefaults:      l7CreateDefaults,
+		addrFields:          l7AddrFields,
+		requiredCreateFlags: []string{"name", "action", "priority"},
 	}))
 
 	urlCmd := &cobra.Command{Use: "url", Short: "URL filter rules"}
 	urlCmd.AddCommand(
 		secGroup(app, "black", "URL blacklist rules", "security/url-black/rules", false, urlBlackFieldMap, secGroupOpts{
-			createDefaults: urlBlackCreateDefaults,
-			addrFields:     urlBlackAddrFields,
+			createDefaults:      urlBlackCreateDefaults,
+			addrFields:          urlBlackAddrFields,
+			requiredCreateFlags: []string{"name", "mode"},
 		}),
 		secGroup(app, "keywords", "URL keyword rules", "security/url-keywords/rules", false, urlKeywordsFieldMap, secGroupOpts{
-			defaultColumns: []string{"id", "tagname", "mode", "src_url", "ori_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
+			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "ori_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
+			requiredCreateFlags: []string{"name", "mode", "src-url", "ori-keyword", "rep-keyword", "hit-rate", "priority"},
 		}),
 		secGroup(app, "redirect", "URL redirect rules", "security/url-redirect/rules", false, urlRedirectFieldMap, secGroupOpts{
-			defaultColumns: []string{"id", "tagname", "mode", "src_url", "dst_url", "hit_rate", "prio", "enabled"},
+			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "dst_url", "hit_rate", "prio", "enabled"},
+			requiredCreateFlags: []string{"name", "mode", "src-url", "dst-url", "hit-rate", "priority"},
 		}),
 		secGroup(app, "replace", "URL replace rules", "security/url-replace/rules", false, urlReplaceFieldMap, secGroupOpts{
-			defaultColumns: []string{"id", "tagname", "mode", "src_url", "param_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
+			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "param_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
+			requiredCreateFlags: []string{"name", "mode", "src-url", "param-keyword", "rep-keyword", "hit-rate", "priority"},
 		}),
 	)
 	securityCmd.AddCommand(urlCmd)
 
-	securityCmd.AddCommand(secGroup(app, "domain-blacklist", "Domain blacklist rules", "security/domain-blacklist/rules", false, domainBlacklistFieldMap))
+	securityCmd.AddCommand(secGroup(app, "domain-blacklist", "Domain blacklist rules", "security/domain-blacklist/rules", false, domainBlacklistFieldMap, secGroupOpts{
+		requiredCreateFlags: []string{"name", "domain-group"},
+	}))
 	securityCmd.AddCommand(secGroup(app, "peerconn", "Peer connection rules", "security/peerconn/rules", false, peerconnFieldMap, secGroupOpts{
-		createDefaults: peerconnCreateDefaults,
-		addrFields:     peerconnAddrFields,
+		createDefaults:      peerconnCreateDefaults,
+		addrFields:          peerconnAddrFields,
+		requiredCreateFlags: []string{"name", "limits", "protocol"},
 	}))
 	securityCmd.AddCommand(secGroup(app, "terminals", "Terminal device annotations", "security/terminals", false, terminalsFieldMap))
 
@@ -325,9 +334,10 @@ func New(app *cliapp.Runtime) *cobra.Command {
 }
 
 type secGroupOpts struct {
-	createDefaults map[string]interface{}
-	defaultColumns []string
-	addrFields     map[string]string // CLI flag → API field for address/port nested objects.
+	createDefaults      map[string]interface{}
+	defaultColumns      []string
+	addrFields          map[string]string // CLI flag → API field for address/port nested objects.
+	requiredCreateFlags []string
 }
 
 func secGroup(app *cliapp.Runtime, use, short, apiPath string, withGet bool, fieldMap map[string]string, opts ...secGroupOpts) *cobra.Command {
@@ -336,11 +346,11 @@ func secGroup(app *cliapp.Runtime, use, short, apiPath string, withGet bool, fie
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	addSecCRUD(app, grp, apiPath, withGet, fieldMap, o.createDefaults, o.defaultColumns, o.addrFields)
+	addSecCRUD(app, grp, apiPath, withGet, fieldMap, o.createDefaults, o.defaultColumns, o.addrFields, o.requiredCreateFlags)
 	return grp
 }
 
-func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet bool, fieldMap map[string]string, createDefaults map[string]interface{}, defaultColumns []string, addrFields map[string]string) {
+func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet bool, fieldMap map[string]string, createDefaults map[string]interface{}, defaultColumns []string, addrFields map[string]string, requiredCreateFlags []string) {
 	name := grp.Use
 	listCmd := &cobra.Command{
 		Use:     "list",
@@ -368,6 +378,15 @@ func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet
 	createCmd := secWriteCmd(app, "create", "Create a "+name+" rule", false, fieldMap, createDefaults, addrFields, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 	})
+	if len(requiredCreateFlags) > 0 {
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	updateCmd := secWriteCmd(app, "update ID", "Update a "+name+" rule", true, fieldMap, nil, addrFields, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
 	})

@@ -83,9 +83,11 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ReadAll() error = %v", err)
 			}
-			if string(body) != `{"address":"10.0.0.1","name":"office-gateway"}` &&
-				string(body) != `{"name":"office-gateway","address":"10.0.0.1"}` {
-				t.Fatalf("body = %q", string(body))
+			bs := string(body)
+			for _, want := range []string{`"group_name":"office-gateway"`, `"group_value":`} {
+				if !bytes.Contains(body, []byte(want)) {
+					t.Fatalf("body missing %s: %s", want, bs)
+				}
 			}
 
 			return jsonResponse(`{"code":0,"message":"created","data":null}`), nil
@@ -93,7 +95,7 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"ip", "create", "--data", `{"name":"office-gateway","address":"10.0.0.1"}`})
+	cmd.SetArgs([]string{"ip", "create", "--name", "office-gateway", "--value", "10.0.0.1"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}

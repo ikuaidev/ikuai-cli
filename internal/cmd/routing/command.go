@@ -144,33 +144,38 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	streamCmd := &cobra.Command{Use: "stream", Short: "Traffic shunting rules"}
 	streamCmd.AddCommand(
 		ruleGroup(app, "domain", "Domain-based stream rules", "routing/domain-rules", ruleGroupOpts{
-			fieldMap:       domainFieldMap,
-			addrFields:     domainAddrFields,
-			createDefaults: domainDefaults,
-			defaultColumns: []string{"id", "tagname", "domain", "interface", "src_addr", "prio", "enabled"},
+			fieldMap:            domainFieldMap,
+			addrFields:          domainAddrFields,
+			createDefaults:      domainDefaults,
+			defaultColumns:      []string{"id", "tagname", "domain", "interface", "src_addr", "prio", "enabled"},
+			requiredCreateFlags: []string{"name", "interface"},
 		}),
 		ruleGroup(app, "five-tuple", "5-tuple stream rules (src/dst IP, port, protocol)", "routing/five-tuple-rules", ruleGroupOpts{
-			fieldMap:       fiveTupleFieldMap,
-			addrFields:     fiveTupleAddrFields,
-			createDefaults: fiveTupleDefaults,
-			defaultColumns: []string{"id", "tagname", "src_addr", "dst_addr", "protocol", "dst_port", "interface", "prio", "enabled"},
+			fieldMap:            fiveTupleFieldMap,
+			addrFields:          fiveTupleAddrFields,
+			createDefaults:      fiveTupleDefaults,
+			defaultColumns:      []string{"id", "tagname", "src_addr", "dst_addr", "protocol", "dst_port", "interface", "prio", "enabled"},
+			requiredCreateFlags: []string{"name", "interface"},
 		}),
 		ruleGroup(app, "l7", "L7 application protocol stream rules", "routing/app-protocols", ruleGroupOpts{
-			fieldMap:       l7FieldMap,
-			addrFields:     l7AddrFields,
-			createDefaults: l7Defaults,
-			defaultColumns: []string{"id", "tagname", "app_proto", "interface", "src_addr", "prio", "enabled"},
+			fieldMap:            l7FieldMap,
+			addrFields:          l7AddrFields,
+			createDefaults:      l7Defaults,
+			defaultColumns:      []string{"id", "tagname", "app_proto", "interface", "src_addr", "prio", "enabled"},
+			requiredCreateFlags: []string{"name", "interface"},
 		}),
 		ruleGroup(app, "load-balance", "Load balance rules", "routing/load-balance-rules", ruleGroupOpts{
-			fieldMap:       loadBalanceFieldMap,
-			createDefaults: loadBalanceDefaults,
-			defaultColumns: []string{"id", "tagname", "interface", "mode", "weight", "isp_name", "enabled"},
+			fieldMap:            loadBalanceFieldMap,
+			createDefaults:      loadBalanceDefaults,
+			defaultColumns:      []string{"id", "tagname", "interface", "mode", "weight", "isp_name", "enabled"},
+			requiredCreateFlags: []string{"name", "interface"},
 		}),
 		ruleGroup(app, "updown", "Upstream/downstream rules", "routing/updown", ruleGroupOpts{
-			fieldMap:       updownFieldMap,
-			addrFields:     updownAddrFields,
-			createDefaults: updownDefaults,
-			defaultColumns: []string{"id", "tagname", "upiface", "downiface", "protocol", "src_addr", "enabled"},
+			fieldMap:            updownFieldMap,
+			addrFields:          updownAddrFields,
+			createDefaults:      updownDefaults,
+			defaultColumns:      []string{"id", "tagname", "upiface", "downiface", "protocol", "src_addr", "enabled"},
+			requiredCreateFlags: []string{"name", "upiface", "downiface"},
 		}),
 	)
 	routingCmd.AddCommand(streamCmd)
@@ -222,6 +227,15 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/routing/static-routes", body)
 		})
+	{
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "name", "dst-addr", "gateway", "netmask", "interface"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	updateCmd := writeCmd(app, "update ID", "Update a static route", true, staticFieldMap, nil, nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/routing/static-routes/"+id, body)
@@ -242,10 +256,11 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 }
 
 type ruleGroupOpts struct {
-	fieldMap       map[string]string
-	addrFields     map[string]string
-	createDefaults map[string]interface{}
-	defaultColumns []string
+	fieldMap            map[string]string
+	addrFields          map[string]string
+	createDefaults      map[string]interface{}
+	defaultColumns      []string
+	requiredCreateFlags []string
 }
 
 func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOpts) *cobra.Command {
@@ -277,6 +292,15 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 		})
+	if len(opts.requiredCreateFlags) > 0 {
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, opts.requiredCreateFlags...); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	updateCmd := writeCmd(app, "update ID", "Update a "+use+" rule", true, opts.fieldMap, opts.addrFields, nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
@@ -356,6 +380,11 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {
 			return err
+		}
+		if strings.HasPrefix(use, "toggle") {
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+				return err
+			}
 		}
 		data, _ := cmd.Flags().GetString("data")
 		body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)

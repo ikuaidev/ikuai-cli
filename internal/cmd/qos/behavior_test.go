@@ -85,7 +85,7 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 			}
 			// writeCmd merges createDefaults into the body, so we check key fields.
 			bs := string(body)
-			for _, want := range []string{`"name":"office-cap"`, `"limit":"20M"`, `"protocol":"any"`} {
+			for _, want := range []string{`"tagname":"office-cap"`, `"upload":"20M"`, `"download":"20M"`, `"interface":"wan1"`} {
 				if !bytes.Contains(body, []byte(want)) {
 					t.Fatalf("body missing %s: %s", want, bs)
 				}
@@ -96,7 +96,7 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"ip", "create", "--data", `{"name":"office-cap","limit":"20M"}`})
+	cmd.SetArgs([]string{"ip", "create", "--name", "office-cap", "--interface", "wan1", "--upload", "20M", "--download", "20M"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}

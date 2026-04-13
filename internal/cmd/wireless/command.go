@@ -56,26 +56,29 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 
 	wirelessCmd.AddCommand(ruleGroup(app, "blacklist", "Wireless access control (blacklist)", "wireless/access-control/rules", ruleGroupOpts{
-		fieldMap:       blacklistFieldMap,
-		addrFields:     blacklistAddrFields,
-		createDefaults: blacklistDefaults,
-		defaultColumns: []string{"id", "tagname", "mode", "lmac", "lssid", "lap", "enabled"},
+		fieldMap:            blacklistFieldMap,
+		addrFields:          blacklistAddrFields,
+		createDefaults:      blacklistDefaults,
+		defaultColumns:      []string{"id", "tagname", "mode", "lmac", "lssid", "lap", "enabled"},
+		requiredCreateFlags: []string{"name", "ap"},
 	}))
 	wirelessCmd.AddCommand(ruleGroup(app, "vlan", "Wireless VLAN rules", "wireless/vlan/rules", ruleGroupOpts{
-		fieldMap:       vlanFieldMap,
-		addrFields:     vlanAddrFields,
-		createDefaults: vlanDefaults,
-		defaultColumns: []string{"id", "tagname", "vlanid", "lmac", "lssid", "enabled"},
+		fieldMap:            vlanFieldMap,
+		addrFields:          vlanAddrFields,
+		createDefaults:      vlanDefaults,
+		defaultColumns:      []string{"id", "tagname", "vlanid", "lmac", "lssid", "enabled"},
+		requiredCreateFlags: []string{"name", "vlan-id"},
 	}))
 	wirelessCmd.AddCommand(acGroup(app))
 	return wirelessCmd
 }
 
 type ruleGroupOpts struct {
-	fieldMap       map[string]string
-	addrFields     map[string]string
-	createDefaults map[string]interface{}
-	defaultColumns []string
+	fieldMap            map[string]string
+	addrFields          map[string]string
+	createDefaults      map[string]interface{}
+	defaultColumns      []string
+	requiredCreateFlags []string
 }
 
 func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOpts) *cobra.Command {
@@ -108,6 +111,15 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 		})
+	if len(opts.requiredCreateFlags) > 0 {
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, opts.requiredCreateFlags...); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	updateCmd := writeCmd(app, "update ID", "Update a "+short, true, opts.fieldMap, opts.addrFields, nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
@@ -313,6 +325,11 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {
 			return err
+		}
+		if strings.HasPrefix(use, "toggle") {
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+				return err
+			}
 		}
 		data, _ := cmd.Flags().GetString("data")
 		body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)

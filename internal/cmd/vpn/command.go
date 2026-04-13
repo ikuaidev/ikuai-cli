@@ -222,20 +222,24 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 
 	vpnCmd.AddCommand(vpnServerGroup(app, "pptp", "vpn/pptp", pptpClientFieldMap, pptpClientDefaults,
-		[]string{"id", "name", "server", "username", "interface", "enabled"}, pptpServerFieldMap))
+		[]string{"id", "name", "server", "username", "interface", "enabled"}, pptpServerFieldMap,
+		[]string{"name", "server", "username", "password", "interface"}))
 	vpnCmd.AddCommand(vpnServerGroup(app, "l2tp", "vpn/l2tp", l2tpClientFieldMap, l2tpClientDefaults,
-		[]string{"id", "name", "server", "username", "interface", "enabled"}, l2tpServerFieldMap))
+		[]string{"id", "name", "server", "username", "interface", "enabled"}, l2tpServerFieldMap,
+		[]string{"name", "server", "username", "password", "interface"}))
 	vpnCmd.AddCommand(vpnServerGroup(app, "openvpn", "vpn/openvpn", openvpnClientFieldMap, openvpnClientDefaults,
-		[]string{"id", "name", "remote_addr", "remote_port", "proto", "interface", "enabled"}, openvpnServerFieldMap))
+		[]string{"id", "name", "remote_addr", "remote_port", "proto", "interface", "enabled"}, openvpnServerFieldMap,
+		[]string{"name", "remote-addr", "interface"}))
 	vpnCmd.AddCommand(vpnServerGroup(app, "ikev2", "vpn/ikev2", ikev2ClientFieldMap, ikev2ClientDefaults,
-		[]string{"id", "name", "remote_addr", "interface", "authby", "enabled"}, ikev2ServerFieldMap))
+		[]string{"id", "name", "remote_addr", "interface", "authby", "enabled"}, ikev2ServerFieldMap,
+		[]string{"name", "remote-addr", "interface", "left-id"}))
 	vpnCmd.AddCommand(ipsecGroup(app))
 	vpnCmd.AddCommand(wireguardGroup(app))
 
 	return vpnCmd
 }
 
-func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap map[string]string, clientDefaults map[string]interface{}, defaultColumns []string, serverFieldMap map[string]string) *cobra.Command {
+func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap map[string]string, clientDefaults map[string]interface{}, defaultColumns []string, serverFieldMap map[string]string, requiredCreateFlags []string) *cobra.Command {
 	grp := &cobra.Command{Use: name, Short: name + " VPN"}
 
 	getCmd := &cobra.Command{
@@ -288,6 +292,15 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath+"/clients", body)
 		})
+	if len(requiredCreateFlags) > 0 {
+		origRunE := clientCreateCmd.RunE
+		clientCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	clientUpdateCmd := writeCmd(app, "client-update ID", "Update a "+name+" client", true, clientFieldMap, nil, nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/clients/"+id, body)
@@ -321,12 +334,22 @@ func ipsecGroup(app *cliapp.Runtime) *cobra.Command {
 	}
 	cliapp.AddListFlags(clientsCmd)
 
+	createCmd := writeCmd(app, "client-create", "Create an IPSec client", false, ipsecClientFieldMap, nil, ipsecClientDefaults,
+		func(body interface{}, id string) (json.RawMessage, error) {
+			return app.APIClient.Post(cliapp.APIBase+"/vpn/ipsec/clients", body)
+		})
+	{
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "name", "interface", "left-subnet", "right-subnet"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	grp.AddCommand(
 		clientsCmd,
-		writeCmd(app, "client-create", "Create an IPSec client", false, ipsecClientFieldMap, nil, ipsecClientDefaults,
-			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Post(cliapp.APIBase+"/vpn/ipsec/clients", body)
-			}),
+		createCmd,
 		writeCmd(app, "client-update ID", "Update an IPSec client", true, ipsecClientFieldMap, nil, nil,
 			func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Put(cliapp.APIBase+"/vpn/ipsec/clients/"+id, body)
@@ -388,13 +411,29 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 	wgCreateFieldMap["private-key"] = "local_privatekey"
 	wgCreateFieldMap["public-key"] = "local_publickey"
 
+	// WireGuard tunnel create has no RequireFlags here — local_privatekey/local_publickey
+	// are B2-class missing fields tracked separately, not in this validation pass.
+	wgCreateCmd := writeCmd(app, "create", "Create a WireGuard tunnel", false, wgCreateFieldMap, nil, wireguardDefaults,
+		func(body interface{}, id string) (json.RawMessage, error) {
+			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard", body)
+		})
+	peerCreateCmd := writeCmd(app, "peer-create ID", "Create a peer on a WireGuard tunnel", true, wireguardPeerFieldMap, nil, wireguardPeerDefaults,
+		func(body interface{}, id string) (json.RawMessage, error) {
+			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard/"+id+"/peers", body)
+		})
+	{
+		origRunE := peerCreateCmd.RunE
+		peerCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "public-key", "allow-ips", "interface"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	grp.AddCommand(
 		listCmd,
 		getByIDCmd(app, "get ID", "Get a WireGuard tunnel", "/vpn/wireguard/"),
-		writeCmd(app, "create", "Create a WireGuard tunnel", false, wgCreateFieldMap, nil, wireguardDefaults,
-			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard", body)
-			}),
+		wgCreateCmd,
 		writeCmd(app, "update ID", "Update a WireGuard tunnel", true, wireguardFieldMap, nil, nil,
 			func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Put(cliapp.APIBase+"/vpn/wireguard/"+id, body)
@@ -405,10 +444,7 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 			}),
 		deleteByIDCmd(app, "delete ID", "Delete a WireGuard tunnel", "/vpn/wireguard/"),
 		peersListCmd,
-		writeCmd(app, "peer-create ID", "Create a peer on a WireGuard tunnel", true, wireguardPeerFieldMap, nil, wireguardPeerDefaults,
-			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard/"+id+"/peers", body)
-			}),
+		peerCreateCmd,
 		peerDeleteCmd(app),
 	)
 	return grp
@@ -513,6 +549,11 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {
 			return err
+		}
+		if strings.HasPrefix(use, "toggle") {
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+				return err
+			}
 		}
 		data, _ := cmd.Flags().GetString("data")
 		body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
