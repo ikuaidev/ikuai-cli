@@ -600,6 +600,7 @@ SSH credentials are resolved in order:
 		c.Flags().String("data", "{}", "JSON body")
 	}
 	cliapp.AddEnabledFlag(systemSchedulesToggleCmd)
+	cliapp.MarkFlagsRequired(systemSchedulesToggleCmd, "enabled")
 	for _, c := range []*cobra.Command{systemSchedulesCreateCmd, systemSchedulesUpdateCmd} {
 		c.Flags().String("name", "", "Schedule name (tagname)")
 		c.Flags().String("event", "", "Event type (reboot/poweroff)")
@@ -609,6 +610,7 @@ SSH credentials are resolved in order:
 		c.Flags().String("comment", "", "Comment")
 		cliapp.AddEnabledFlag(c)
 	}
+	cliapp.MarkFlagsRequired(systemSchedulesCreateCmd, "name", "time", "strategy", "cycle-time")
 
 	systemCmd.AddCommand(
 		systemRemoteAccessCmd,

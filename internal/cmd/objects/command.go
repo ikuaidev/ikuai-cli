@@ -108,6 +108,9 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 	createCmd.Flags().String("name", "", "Object group name")
 	if valueKey != "" {
 		createCmd.Flags().String("value", "", "Comma-separated values (e.g. 1.2.3.4,5.6.7.8/24)")
+		cliapp.MarkFlagsRequired(createCmd, "name", "value")
+	} else {
+		cliapp.MarkFlagsRequired(createCmd, "name")
 	}
 
 	updateCmd := &cobra.Command{

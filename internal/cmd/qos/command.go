@@ -153,6 +153,7 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 		return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 	})
 	if len(requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(createCmd, requiredCreateFlags...)
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
@@ -261,6 +262,9 @@ func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, addFla
 	c.Flags().String("data", "{}", "JSON body (escape hatch)")
 	if addFlags != nil {
 		addFlags(c)
+	}
+	if strings.HasPrefix(use, "toggle") {
+		cliapp.MarkFlagsRequired(c, "enabled")
 	}
 	return c
 }

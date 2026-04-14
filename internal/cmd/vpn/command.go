@@ -8,6 +8,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// flagDescs provides human-readable descriptions for CLI flags.
+var flagDescs = map[string]string{
+	"name":         "Tunnel/client name",
+	"server":       "VPN server address",
+	"remote-addr":  "Remote server address",
+	"username":     "Authentication username",
+	"password":     "Authentication password",
+	"interface":    "Bound interface (e.g. wan1, auto)",
+	"comment":      "Comment",
+	"left-id":      "Local identity string",
+	"left-subnet":  "Local subnet (CIDR)",
+	"right-subnet": "Remote subnet (CIDR)",
+	"secret":       "Pre-shared key",
+	"address":      "Tunnel address (CIDR)",
+	"private-key":  "WireGuard private key (base64)",
+	"public-key":   "WireGuard public key (base64)",
+	"allow-ips":    "Allowed IPs (CIDR, comma-separated)",
+	"port":         "Listen port",
+	"mtu":          "MTU size",
+	"keepalive":    "Persistent keepalive interval (seconds)",
+	"ca":           "CA certificate (PEM)",
+}
+
 // --- VPN client field maps and defaults ---
 
 var (
@@ -300,6 +323,7 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath+"/clients", body)
 		})
 	if len(requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(clientCreateCmd, requiredCreateFlags...)
 		origRunE := clientCreateCmd.RunE
 		clientCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
@@ -345,6 +369,7 @@ func ipsecGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/vpn/ipsec/clients", body)
 		})
+	cliapp.MarkFlagsRequired(createCmd, "name", "interface", "left-subnet", "right-subnet")
 	{
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -422,6 +447,7 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard", body)
 		})
+	cliapp.MarkFlagsRequired(wgCreateCmd, "name", "address", "private-key", "public-key")
 	{
 		origRunE := wgCreateCmd.RunE
 		wgCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -435,6 +461,7 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard/"+id+"/peers", body)
 		})
+	cliapp.MarkFlagsRequired(peerCreateCmd, "public-key", "allow-ips", "interface")
 	{
 		origRunE := peerCreateCmd.RunE
 		peerCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -553,12 +580,23 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		if flagName == "enabled" {
 			continue
 		}
-		c.Flags().String(flagName, "", flagName+" value")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = flagName + " value"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	for flagName := range addrFields {
-		c.Flags().String(flagName, "", "Comma-separated "+flagName+" values")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = "Comma-separated " + flagName + " values"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	cliapp.AddEnabledFlag(c)
+	if strings.HasPrefix(use, "toggle") {
+		cliapp.MarkFlagsRequired(c, "enabled")
+	}
 
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {
