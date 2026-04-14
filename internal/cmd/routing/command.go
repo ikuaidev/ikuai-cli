@@ -84,10 +84,10 @@ var (
 		"src-addr":  "src_addr",
 	}
 	l7Defaults = map[string]interface{}{
-		"enabled":   "yes",
-		"comment":   "",
-		"app_proto": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
-		"mode":      0,
+		"enabled":    "yes",
+		"comment":    "",
+		"app_proto":  map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
+		"mode":       0,
 		"prio":       31,
 		"iface_band": 0,
 		"src_addr":   map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},

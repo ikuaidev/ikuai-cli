@@ -188,9 +188,9 @@ var (
 		"enabled": "enabled",
 	}
 	urlBlackCreateDefaults = map[string]interface{}{
-		"enabled": "yes",
-		"domain":  map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
-		"comment": "",
+		"enabled":  "yes",
+		"domain":   map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
+		"comment":  "",
 		"src_addr": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"time":     map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 	}
