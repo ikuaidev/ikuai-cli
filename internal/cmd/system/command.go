@@ -121,6 +121,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "name", "time", "strategy", "cycle-time"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, schedulesFieldMap)
 			if err != nil {
@@ -169,6 +172,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")

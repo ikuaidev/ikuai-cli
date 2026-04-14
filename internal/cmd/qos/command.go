@@ -96,13 +96,15 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 
 	qosCmd.AddCommand(qosGroup(app, "ip", "network/qos/ip", addQoSIPFlags, qosIPFieldMap, qosIPAddrFields, qosIPCreateDefaults,
-		[]string{"id", "tagname", "ip_addr", "interface", "protocol", "upload", "download", "enabled"}))
+		[]string{"id", "tagname", "ip_addr", "interface", "protocol", "upload", "download", "enabled"},
+		[]string{"name", "interface", "upload", "download"}))
 	qosCmd.AddCommand(qosGroup(app, "mac", "network/qos/mac", addQoSMACFlags, qosMACFieldMap, qosMACAddrFields, qosMACCreateDefaults,
-		[]string{"id", "tagname", "mac_addr", "interface", "upload", "download", "enabled"}))
+		[]string{"id", "tagname", "mac_addr", "interface", "upload", "download", "enabled"},
+		[]string{"name", "interface", "upload", "download"}))
 	return qosCmd
 }
 
-func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Command), fieldMap map[string]string, addrFields map[string]string, defaults map[string]interface{}, defaultColumns []string) *cobra.Command {
+func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Command), fieldMap map[string]string, addrFields map[string]string, defaults map[string]interface{}, defaultColumns []string, requiredCreateFlags []string) *cobra.Command {
 	group := &cobra.Command{Use: name, Short: "QoS rules based on " + name}
 
 	listCmd := &cobra.Command{
@@ -148,6 +150,15 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 	createCmd := dataCommandImpl(app, "create", "Create a "+name+" QoS rule", false, addFlags, fieldMap, addrFields, defaults, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 	})
+	if len(requiredCreateFlags) > 0 {
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	updateCmd := dataCommandImpl(app, "update ID", "Update a "+name+" QoS rule", true, addFlags, fieldMap, addrFields, nil, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
 	})
@@ -200,6 +211,11 @@ func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, addFla
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {
 			return err
+		}
+		if strings.HasPrefix(use, "toggle") {
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+				return err
+			}
 		}
 		data, _ := cmd.Flags().GetString("data")
 		body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)

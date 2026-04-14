@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -98,6 +99,25 @@ func MergeDataWithFlags(dataJSON string, cmd *cobra.Command, fieldMap map[string
 		result[apiField] = val
 	}
 	return result, nil
+}
+
+// RequireFlags returns a ValidationError if any of the named flags were not
+// explicitly set by the user. Call this inside RunE before making API calls.
+func RequireFlags(cmd *cobra.Command, flags ...string) error {
+	var missing []string
+	for _, name := range flags {
+		f := cmd.Flags().Lookup(name)
+		if f == nil || !f.Changed {
+			missing = append(missing, "--"+name)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	if len(missing) == 1 {
+		return &ValidationError{Message: "missing required flag: " + missing[0]}
+	}
+	return &ValidationError{Message: "missing required flags: " + strings.Join(missing, ", ")}
 }
 
 // AddEnabledFlag adds --enabled flag accepting "yes" or "no".

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -85,7 +86,7 @@ func TestWireGuardPeerCreateSendsExpectedJSONBody(t *testing.T) {
 			}
 			// writeCmd merges createDefaults into the body, so we check key fields.
 			bs := string(body)
-			for _, want := range []string{`"name":"peer-a"`, `"public_key":"pub-key"`} {
+			for _, want := range []string{`"peer_publickey":"pub-key"`, `"allowips":"10.0.0.0/24"`, `"interface":"wg0"`} {
 				if !bytes.Contains(body, []byte(want)) {
 					t.Fatalf("body missing %s: %s", want, bs)
 				}
@@ -96,7 +97,7 @@ func TestWireGuardPeerCreateSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"wireguard", "peer-create", "tunnel-1", "--data", `{"name":"peer-a","public_key":"pub-key"}`})
+	cmd.SetArgs([]string{"wireguard", "peer-create", "tunnel-1", "--public-key", "pub-key", "--allow-ips", "10.0.0.0/24", "--interface", "wg0"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -105,6 +106,24 @@ func TestWireGuardPeerCreateSendsExpectedJSONBody(t *testing.T) {
 	want := "{\"message\":\"created\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestPPTPClientCreateMissingRequiredFlags(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"pptp", "client-create", "--name", "test"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing required flags")
+	}
+	if !strings.Contains(err.Error(), "missing required flag") {
+		t.Fatalf("error = %q, want it to contain 'missing required flag'", err.Error())
 	}
 }
 

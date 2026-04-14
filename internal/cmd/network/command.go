@@ -188,6 +188,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "domain", "dns-addr", "parse-type"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dnsProxyFieldMap)
 			if err != nil {
@@ -292,6 +295,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "name", "interface", "addr-pool", "netmask", "gateway", "lease", "phy-ifnames"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpFieldMap)
 			if err != nil {
@@ -336,6 +342,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
@@ -413,6 +422,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "name", "ip", "mac", "interface"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpStaticFieldMap)
 			if err != nil {
@@ -455,6 +467,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
@@ -546,6 +561,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Short:   "Create DHCP access rule",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if err := cliapp.RequireFlags(cmd, "name", "mac", "comment"); err != nil {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
@@ -744,6 +762,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, toggleFieldMap)
 			if err != nil {
@@ -801,6 +822,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "name", "vlan-id", "interface", "netmask"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, vlanFieldMap)
 			if err != nil {
@@ -843,6 +867,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
@@ -1199,6 +1226,9 @@ func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[stri
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")

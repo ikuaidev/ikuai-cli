@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -60,6 +61,42 @@ func TestNatListBuildsExpectedQueryParams(t *testing.T) {
 	want := `{"items":[]}` + "\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestDHCPCreateMissingRequiredFlags(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"dhcp", "create", "--name", "test"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing required flags")
+	}
+	if !strings.Contains(err.Error(), "missing required flags") {
+		t.Fatalf("error = %q, want it to contain 'missing required flags'", err.Error())
+	}
+}
+
+func TestDHCPToggleMissingEnabled(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"dhcp", "toggle", "1"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing --enabled")
+	}
+	if !strings.Contains(err.Error(), "missing required flag: --enabled") {
+		t.Fatalf("error = %q, want 'missing required flag: --enabled'", err.Error())
 	}
 }
 

@@ -131,13 +131,23 @@ func accountsGroup(app *cliapp.Runtime) *cobra.Command {
 	}
 	cliapp.AddListFlags(listCmd)
 
+	createCmd := writeCmd(app, "create", "Create a user account", false, accountFieldMap, nil, accountDefaults,
+		func(body interface{}, id string) (json.RawMessage, error) {
+			return app.APIClient.Post(cliapp.APIBase+"/auth/users", body)
+		})
+	{
+		origRunE := createCmd.RunE
+		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "username", "password"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	group.AddCommand(
 		listCmd,
 		getByIDCmd(app, "get ID", "Get a single user account", "/auth/users/"),
-		writeCmd(app, "create", "Create a user account", false, accountFieldMap, nil, accountDefaults,
-			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Post(cliapp.APIBase+"/auth/users", body)
-			}),
+		createCmd,
 		writeCmd(app, "update ID", "Update a user account", true, accountFieldMap, nil, nil,
 			func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Put(cliapp.APIBase+"/auth/users/"+id, body)
@@ -170,13 +180,23 @@ func packagesGroup(app *cliapp.Runtime) *cobra.Command {
 	}
 	cliapp.AddListFlags(listCmd)
 
+	pkgCreateCmd := writeCmd(app, "create", "Create a package", false, packageFieldMap, nil, packageDefaults,
+		func(body interface{}, id string) (json.RawMessage, error) {
+			return app.APIClient.Post(cliapp.APIBase+"/auth/packages", body)
+		})
+	{
+		origRunE := pkgCreateCmd.RunE
+		pkgCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "name", "time", "price", "up-speed", "down-speed"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	group.AddCommand(
 		listCmd,
 		getByIDCmd(app, "get ID", "Get a single package", "/auth/packages/"),
-		writeCmd(app, "create", "Create a package", false, packageFieldMap, nil, packageDefaults,
-			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Post(cliapp.APIBase+"/auth/packages", body)
-			}),
+		pkgCreateCmd,
 		writeCmd(app, "update ID", "Update a package", true, packageFieldMap, nil, nil,
 			func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Put(cliapp.APIBase+"/auth/packages/"+id, body)
@@ -259,6 +279,11 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {
 			return err
+		}
+		if strings.HasPrefix(use, "toggle") {
+			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+				return err
+			}
 		}
 		data, _ := cmd.Flags().GetString("data")
 		body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)

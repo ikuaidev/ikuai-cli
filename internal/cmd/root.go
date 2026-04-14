@@ -229,6 +229,29 @@ func init() {
 	_ = rootCmd.RegisterFlagCompletionFunc("format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"table", "json", "yaml"}, cobra.ShellCompDirectiveNoFileComp
 	})
+
+	// Reformat cobra's required-flag error to match project convention:
+	// "required flag(s) "x" not set" → "missing required flag: --x"
+	rootCmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		msg := err.Error()
+		const prefix = `required flag(s) `
+		const suffix = ` not set`
+		if strings.HasPrefix(msg, prefix) && strings.HasSuffix(msg, suffix) {
+			inner := strings.TrimPrefix(msg, prefix)
+			inner = strings.TrimSuffix(inner, suffix)
+			// inner looks like: `"name"` or `"name1", "name2"`
+			parts := strings.Split(inner, ", ")
+			flags := make([]string, 0, len(parts))
+			for _, p := range parts {
+				flags = append(flags, "--"+strings.Trim(p, `"`))
+			}
+			if len(flags) == 1 {
+				return &cliapp.ValidationError{Message: "missing required flag: " + flags[0]}
+			}
+			return &cliapp.ValidationError{Message: "missing required flags: " + strings.Join(flags, ", ")}
+		}
+		return &cliapp.ValidationError{Message: msg}
+	})
 }
 
 // isTerminalWriter checks whether w is connected to a terminal.

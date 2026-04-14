@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -101,6 +102,24 @@ func TestMACSetModeSendsExpectedJSONBody(t *testing.T) {
 	want := "{\"message\":\"saved\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestACLCreateMissingRequiredFlags(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"acl", "create"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for missing required flags")
+	}
+	if !strings.Contains(err.Error(), "missing required flags") {
+		t.Fatalf("error = %q, want it to contain 'missing required flags'", err.Error())
 	}
 }
 

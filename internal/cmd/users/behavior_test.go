@@ -85,7 +85,7 @@ func TestAccountsCreateSendsExpectedJSONBody(t *testing.T) {
 			}
 			// writeCmd merges createDefaults into the body, so we check key fields.
 			bs := string(body)
-			for _, want := range []string{`"username":"alice"`, `"password":"secret"`, `"ppptype":"any"`, `"share":1`} {
+			for _, want := range []string{`"username":"alice"`, `"passwd":"secret"`, `"ppptype":"any"`, `"share":1`} {
 				if !bytes.Contains(body, []byte(want)) {
 					t.Fatalf("body missing %s: %s", want, bs)
 				}
@@ -96,7 +96,7 @@ func TestAccountsCreateSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"accounts", "create", "--data", `{"username":"alice","password":"secret"}`})
+	cmd.SetArgs([]string{"accounts", "create", "--username", "alice", "--password", "secret"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
