@@ -24,6 +24,7 @@ var qosIPAddrFields = map[string]string{
 	"dst-port": "dst_port",
 }
 var qosIPCreateDefaults = map[string]interface{}{
+	"enabled":  "yes",
 	"comment":  "",
 	"type":     0,
 	"protocol": "any",
@@ -54,6 +55,7 @@ var qosMACAddrFields = map[string]string{
 	"mac-addr": "mac_addr",
 }
 var qosMACCreateDefaults = map[string]interface{}{
+	"enabled": "yes",
 	"comment": "",
 	"time": map[string]interface{}{
 		"custom": []interface{}{

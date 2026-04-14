@@ -9,7 +9,7 @@ description: iKuai QoS bandwidth control — IP-based and MAC-based bandwidth li
 
 ```bash
 ikuai-cli qos ip list
-ikuai-cli qos ip create --name "limit_100m" --ip-addr "192.168.9.0/24" --upload 100 --download 100 --interface wan1 --enabled yes
+ikuai-cli qos ip create --name "limit_100m" --ip-addr "192.168.9.0/24" --upload 100 --download 100 --interface wan1
 ikuai-cli qos ip get <ID>
 ikuai-cli qos ip toggle <ID> --enabled no
 ikuai-cli qos ip delete <ID>
@@ -21,7 +21,7 @@ ikuai-cli qos ip delete <ID>
 
 ```bash
 ikuai-cli qos mac list
-ikuai-cli qos mac create --name "limit_mac" --mac-addr "00:11:22:33:44:55" --upload 50 --download 50 --interface wan1 --enabled yes
+ikuai-cli qos mac create --name "limit_mac" --mac-addr "00:11:22:33:44:55" --upload 50 --download 50 --interface wan1
 ikuai-cli qos mac toggle <ID> --enabled no
 ikuai-cli qos mac delete <ID>
 ```

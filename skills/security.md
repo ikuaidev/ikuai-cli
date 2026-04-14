@@ -10,7 +10,7 @@ description: iKuai security rules — ACL, MAC filtering, L7 app rules, URL filt
 ```bash
 ikuai-cli security acl list
 ikuai-cli security acl get <ID>
-ikuai-cli security acl create --name "block_ssh" --action drop --protocol tcp --dst-port "22" --enabled yes
+ikuai-cli security acl create --name "block_ssh" --action drop --protocol tcp --dst-port "22"
 ikuai-cli security acl toggle <ID> --enabled no
 ikuai-cli security acl delete <ID>
 ```
@@ -24,7 +24,7 @@ ikuai-cli security mac get-mode
 ikuai-cli security mac set-mode --acl-mac 0
 # --data '{"acl_mac":0}' 也可用
 ikuai-cli security mac list
-ikuai-cli security mac create --name "allow1" --mac "00:11:22:33:44:55" --enabled yes
+ikuai-cli security mac create --name "allow1" --mac "00:11:22:33:44:55"
 ikuai-cli security mac toggle <ID> --enabled no
 ikuai-cli security mac delete <ID>
 ```
@@ -34,7 +34,7 @@ ikuai-cli security mac delete <ID>
 ```bash
 ikuai-cli security l7 list
 ikuai-cli security l7 get <ID>
-ikuai-cli security l7 create --name "block_p2p" --action drop --app-proto "BT,eMule" --enabled yes
+ikuai-cli security l7 create --name "block_p2p" --action drop --app-proto "BT,eMule"
 ikuai-cli security l7 toggle <ID> --enabled no
 ikuai-cli security l7 delete <ID>
 ```
@@ -44,27 +44,27 @@ ikuai-cli security l7 delete <ID>
 ```bash
 # 黑名单
 ikuai-cli security url black list
-ikuai-cli security url black create --name "block_ads" --mode 0 --domain "ads.example.com" --enabled yes
+ikuai-cli security url black create --name "block_ads" --mode 0 --domain "ads.example.com"
 ikuai-cli security url black delete <ID>
 
 # 关键词
 ikuai-cli security url keywords list
-ikuai-cli security url keywords create --name "kw1" --mode exact --src-url "example.com" --ori-keyword "bad" --rep-keyword "good" --enabled yes
+ikuai-cli security url keywords create --name "kw1" --mode exact --src-url "example.com" --ori-keyword "bad" --rep-keyword "good"
 
 # 重定向
 ikuai-cli security url redirect list
-ikuai-cli security url redirect create --name "redir1" --mode exact --src-url "old.com" --dst-url "new.com" --enabled yes
+ikuai-cli security url redirect create --name "redir1" --mode exact --src-url "old.com" --dst-url "new.com"
 
 # 替换
 ikuai-cli security url replace list
-ikuai-cli security url replace create --name "rep1" --mode exact --src-url "example.com" --param-keyword "track" --rep-keyword "" --enabled yes
+ikuai-cli security url replace create --name "rep1" --mode exact --src-url "example.com" --param-keyword "track" --rep-keyword ""
 ```
 
 ## 域名黑名单
 
 ```bash
 ikuai-cli security domain-blacklist list
-ikuai-cli security domain-blacklist create --name "blocked" --domain-group "evil.com" --enabled yes
+ikuai-cli security domain-blacklist create --name "blocked" --domain-group "evil.com"
 ikuai-cli security domain-blacklist delete <ID>
 ```
 
@@ -72,7 +72,7 @@ ikuai-cli security domain-blacklist delete <ID>
 
 ```bash
 ikuai-cli security peerconn list
-ikuai-cli security peerconn create --name "limit1" --limits 500 --protocol tcp --src-addr "192.168.9.0/24" --enabled yes
+ikuai-cli security peerconn create --name "limit1" --limits 500 --protocol tcp --src-addr "192.168.9.0/24"
 ```
 
 ## 终端标注（Terminals）

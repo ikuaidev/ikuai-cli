@@ -20,6 +20,7 @@ var (
 		"enabled":  "enabled",
 	}
 	accountDefaults = map[string]interface{}{
+		"enabled":     "yes",
 		"comment":     "",
 		"ppptype":     "any",
 		"packages":    0,

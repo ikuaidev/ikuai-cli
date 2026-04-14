@@ -17,7 +17,7 @@ ikuai-cli users kick <SESSION_ID>
 ```bash
 ikuai-cli users accounts list
 ikuai-cli users accounts get <ID>
-ikuai-cli users accounts create --username "guest1" --password "123456" --enabled yes
+ikuai-cli users accounts create --username "guest1" --password "123456"
 # defaults: ppptype=any, upload=0, download=0, share=1, expires=0
 ikuai-cli users accounts delete <ID>
 ```

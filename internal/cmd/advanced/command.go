@@ -29,15 +29,17 @@ var httpFieldMap = map[string]string{
 	"autoindex":   "autoindex",
 	"download":    "download",
 	"home-dir":    "home_dir",
+	"access":      "access",
 	"enabled":     "enabled",
 }
 
 var sambaFieldMap = map[string]string{
-	"name":       "tagname",
+	"name":       "name",
 	"username":   "username",
 	"password":   "passwd",
 	"permission": "perm",
 	"guest":      "guest",
+	"home-dir":   "home_dir",
 	"enabled":    "enabled",
 }
 
@@ -57,10 +59,38 @@ var sambaConfigFieldMap = map[string]string{
 
 var snmpdFieldMap = map[string]string{
 	"listen-port": "listen_port",
+	"syslocation": "syslocation",
+	"syscontact":  "syscontact",
+	"sysname":     "sysname",
 	"version":     "version",
 	"community":   "community",
+	"source":      "source",
+	"rw":          "rw",
 	"username":    "username",
+	"security":    "security",
+	"auth-proto":  "auth_proto",
+	"auth-pass":   "auth_pass",
+	"priv-proto":  "priv_proto",
+	"priv-pass":   "priv_pass",
 	"enabled":     "enabled",
+}
+
+// ---------- create defaults ----------
+
+var ftpCreateDefaults = map[string]interface{}{
+	"enabled":  "yes",
+	"upload":   0,
+	"download": 0,
+}
+
+var httpCreateDefaults = map[string]interface{}{
+	"enabled": "yes",
+	"access":  1,
+}
+
+var sambaCreateDefaults = map[string]interface{}{
+	"enabled":    "yes",
+	"browseable": "",
 }
 
 // ---------- flag adders ----------
@@ -80,19 +110,21 @@ func addHTTPFlags(cmd *cobra.Command) {
 	cmd.Flags().String("name", "", "Account name (tagname)")
 	cmd.Flags().String("port", "", "HTTP listen port")
 	cmd.Flags().String("server-name", "", "Server name")
-	cmd.Flags().String("ssl", "", "SSL on/off")
-	cmd.Flags().String("autoindex", "", "Enable directory listing")
-	cmd.Flags().String("download", "", "Download bandwidth limit")
-	cmd.Flags().String("home-dir", "", "Home directory")
+	cmd.Flags().String("ssl", "", "SSL on/off (0=off, 1=on)")
+	cmd.Flags().String("autoindex", "", "Enable directory listing (0=off, 1=on)")
+	cmd.Flags().String("download", "", "Download bandwidth limit (KByte/s, 0=unlimited)")
+	cmd.Flags().String("home-dir", "", "Home directory path")
+	cmd.Flags().String("access", "", "WAN access (0=deny, 1=allow)")
 	cliapp.AddEnabledFlag(cmd)
 }
 
 func addSambaFlags(cmd *cobra.Command) {
-	cmd.Flags().String("name", "", "Account name (tagname)")
+	cmd.Flags().String("name", "", "Share name")
 	cmd.Flags().String("username", "", "Samba username")
 	cmd.Flags().String("password", "", "Samba password")
-	cmd.Flags().String("permission", "", "Permission level")
+	cmd.Flags().String("permission", "", "Permission (rw/ro)")
 	cmd.Flags().String("guest", "", "Guest access (yes/no)")
+	cmd.Flags().String("home-dir", "", "Share directory path")
 	cliapp.AddEnabledFlag(cmd)
 }
 
@@ -110,10 +142,20 @@ func addSambaConfigFlags(cmd *cobra.Command) {
 }
 
 func addSNMPDFlags(cmd *cobra.Command) {
-	cmd.Flags().String("listen-port", "", "SNMPD listen port")
-	cmd.Flags().String("version", "", "SNMP version")
-	cmd.Flags().String("community", "", "SNMP community string")
-	cmd.Flags().String("username", "", "SNMP username")
+	cmd.Flags().String("listen-port", "", "SNMPD listen port (2-65535)")
+	cmd.Flags().String("syslocation", "", "System location")
+	cmd.Flags().String("syscontact", "", "System contact")
+	cmd.Flags().String("sysname", "", "System name")
+	cmd.Flags().String("version", "", "SNMP version (2 or 3)")
+	cmd.Flags().String("community", "", "Community string (v2)")
+	cmd.Flags().String("source", "", "Allowed IP/subnet")
+	cmd.Flags().String("rw", "", "Read/write permission (ro/rw)")
+	cmd.Flags().String("username", "", "Username (v3)")
+	cmd.Flags().String("security", "", "Security level (authNoPriv/authPriv)")
+	cmd.Flags().String("auth-proto", "", "Auth protocol (MD5/SHA)")
+	cmd.Flags().String("auth-pass", "", "Auth password (8-30 chars)")
+	cmd.Flags().String("priv-proto", "", "Privacy protocol (DES/AES)")
+	cmd.Flags().String("priv-pass", "", "Privacy password (8-30 chars)")
 	cliapp.AddEnabledFlag(cmd)
 }
 
@@ -125,21 +167,24 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Short: "Advanced services",
 	}
 
-	advancedCmd.AddCommand(userGroup(app, "http", "HTTP server user management", "advanced-service/http-users", "", "", addHTTPFlags, httpFieldMap,
-		[]string{"name", "port", "ssl", "autoindex", "download", "home-dir"}))
-	advancedCmd.AddCommand(serviceGroup(app, "ftp", "FTP server management", "advanced-service/ftp-config", "advanced-service/ftp-users", addFTPFlags, ftpFieldMap, addFTPConfigFlags, ftpConfigFieldMap,
-		[]string{"username", "password", "permission", "home-dir"}))
-	advancedCmd.AddCommand(serviceGroup(app, "samba", "Samba share management", "advanced-service/samba-config", "advanced-service/samba-users", addSambaFlags, sambaFieldMap, addSambaConfigFlags, sambaConfigFieldMap,
-		[]string{"name", "username", "password", "permission", "guest"}))
+	advancedCmd.AddCommand(userGroup(app, "http", "HTTP server user management", "advanced-service/http-users", "", "", addHTTPFlags, httpFieldMap, httpCreateDefaults,
+		[]string{"name", "port", "ssl", "autoindex", "download", "home-dir"},
+		[]string{"id", "tagname", "http_port", "ssl_on", "home_dir", "download", "enabled"}))
+	advancedCmd.AddCommand(serviceGroup(app, "ftp", "FTP server management", "advanced-service/ftp-config", "advanced-service/ftp-users", addFTPFlags, ftpFieldMap, addFTPConfigFlags, ftpConfigFieldMap, ftpCreateDefaults,
+		[]string{"username", "password", "permission", "home-dir"},
+		[]string{"id", "username", "permission", "home_dir", "upload", "download", "enabled"}))
+	advancedCmd.AddCommand(serviceGroup(app, "samba", "Samba share management", "advanced-service/samba-config", "advanced-service/samba-users", addSambaFlags, sambaFieldMap, addSambaConfigFlags, sambaConfigFieldMap, sambaCreateDefaults,
+		[]string{"name", "username", "password", "permission", "guest", "home-dir"},
+		[]string{"id", "name", "username", "perm", "guest", "home_dir", "enabled"}))
 	advancedCmd.AddCommand(snmpdGroup(app))
 	return advancedCmd
 }
 
-func userGroup(app *cliapp.Runtime, use, short, userAPIPath, configGetPath, configSetPath string, addFlags func(*cobra.Command), fieldMap map[string]string, requiredCreateFlags []string) *cobra.Command {
-	return userGroupWithConfig(app, use, short, userAPIPath, configGetPath, configSetPath, addFlags, fieldMap, nil, nil, requiredCreateFlags)
+func userGroup(app *cliapp.Runtime, use, short, userAPIPath, configGetPath, configSetPath string, addFlags func(*cobra.Command), fieldMap map[string]string, createDefaults map[string]interface{}, requiredCreateFlags []string, defaultColumns []string) *cobra.Command {
+	return userGroupWithConfig(app, use, short, userAPIPath, configGetPath, configSetPath, addFlags, fieldMap, nil, nil, createDefaults, requiredCreateFlags, defaultColumns)
 }
 
-func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGetPath, configSetPath string, addFlags func(*cobra.Command), fieldMap map[string]string, cfgAddFlags func(*cobra.Command), cfgFieldMap map[string]string, requiredCreateFlags []string) *cobra.Command {
+func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGetPath, configSetPath string, addFlags func(*cobra.Command), fieldMap map[string]string, cfgAddFlags func(*cobra.Command), cfgFieldMap map[string]string, createDefaults map[string]interface{}, requiredCreateFlags []string, defaultColumns []string) *cobra.Command {
 	group := &cobra.Command{Use: use, Short: short}
 
 	if configGetPath != "" && configSetPath != "" {
@@ -159,7 +204,7 @@ func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGet
 					return nil
 				},
 			},
-			dataCmd(app, "config-set", "Update "+use+" server configuration", cfgAddFlags, cfgFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
+			dataCmd(app, "config-set", "Update "+use+" server configuration", cfgAddFlags, cfgFieldMap, nil, func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Put(cliapp.APIBase+"/"+configSetPath, body)
 			}),
 		)
@@ -173,6 +218,9 @@ func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGet
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if len(defaultColumns) > 0 {
+				app.DefaultColumns = defaultColumns
+			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+userAPIPath,
 				cliapp.ListParams(page, pageSize, filter, order, orderBy))
@@ -185,7 +233,7 @@ func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGet
 	}
 	cliapp.AddListFlags(listCmd)
 
-	createCmd := dataCmd(app, "create", "Create a "+use+" user", addFlags, fieldMap, func(body interface{}, id string) (json.RawMessage, error) {
+	createCmd := dataCmd(app, "create", "Create a "+use+" user", addFlags, fieldMap, createDefaults, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Post(cliapp.APIBase+"/"+userAPIPath, body)
 	})
 	if len(requiredCreateFlags) > 0 {
@@ -199,7 +247,6 @@ func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGet
 	}
 	group.AddCommand(
 		listCmd,
-		getByIDCmd(app, "get ID", "Get a "+use+" user", "/"+userAPIPath+"/"),
 		createCmd,
 		dataCmdWithID(app, "update ID", "Update a "+use+" user", addFlags, fieldMap, func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/"+userAPIPath+"/"+id, body)
@@ -213,8 +260,8 @@ func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGet
 	return group
 }
 
-func serviceGroup(app *cliapp.Runtime, use, short, configAPIPath, userAPIPath string, addFlags func(*cobra.Command), fieldMap map[string]string, configAddFlags func(*cobra.Command), configFieldMap map[string]string, requiredCreateFlags []string) *cobra.Command {
-	return userGroupWithConfig(app, use, short, userAPIPath, configAPIPath, configAPIPath, addFlags, fieldMap, configAddFlags, configFieldMap, requiredCreateFlags)
+func serviceGroup(app *cliapp.Runtime, use, short, configAPIPath, userAPIPath string, addFlags func(*cobra.Command), fieldMap map[string]string, configAddFlags func(*cobra.Command), configFieldMap map[string]string, createDefaults map[string]interface{}, requiredCreateFlags []string, defaultColumns []string) *cobra.Command {
+	return userGroupWithConfig(app, use, short, userAPIPath, configAPIPath, configAPIPath, addFlags, fieldMap, configAddFlags, configFieldMap, createDefaults, requiredCreateFlags, defaultColumns)
 }
 
 func snmpdGroup(app *cliapp.Runtime) *cobra.Command {
@@ -227,6 +274,7 @@ func snmpdGroup(app *cliapp.Runtime) *cobra.Command {
 				if err := app.RequireAuth(); err != nil {
 					return err
 				}
+				app.DefaultColumns = []string{"id", "enabled", "listen_port", "version", "community", "rw"}
 				raw, err := app.APIClient.Get(cliapp.APIBase+"/advanced-service/snmpd-config", nil)
 				if err != nil {
 					return err
@@ -235,30 +283,11 @@ func snmpdGroup(app *cliapp.Runtime) *cobra.Command {
 				return nil
 			},
 		},
-		dataCmd(app, "set", "Update SNMPD configuration", addSNMPDFlags, snmpdFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
+		dataCmd(app, "set", "Update SNMPD configuration", addSNMPDFlags, snmpdFieldMap, nil, func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/advanced-service/snmpd-config", body)
 		}),
 	)
 	return group
-}
-
-func getByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
-	return &cobra.Command{
-		Use:   use,
-		Short: short,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireAuth(); err != nil {
-				return err
-			}
-			raw, err := app.APIClient.Get(cliapp.APIBase+apiPath+args[0], nil)
-			if err != nil {
-				return err
-			}
-			app.PrintRaw(raw)
-			return nil
-		},
-	}
 }
 
 func deleteByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
@@ -292,15 +321,15 @@ func deleteByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Comma
 
 type callWithBody func(body interface{}, id string) (json.RawMessage, error)
 
-func dataCmd(app *cliapp.Runtime, use, short string, addFlags func(*cobra.Command), fieldMap map[string]string, fn callWithBody) *cobra.Command {
-	return dataCmdImpl(app, use, short, false, addFlags, fieldMap, fn)
+func dataCmd(app *cliapp.Runtime, use, short string, addFlags func(*cobra.Command), fieldMap map[string]string, defaults map[string]interface{}, fn callWithBody) *cobra.Command {
+	return dataCmdImpl(app, use, short, false, addFlags, fieldMap, defaults, fn)
 }
 
 func dataCmdWithID(app *cliapp.Runtime, use, short string, addFlags func(*cobra.Command), fieldMap map[string]string, fn callWithBody) *cobra.Command {
-	return dataCmdImpl(app, use, short, true, addFlags, fieldMap, fn)
+	return dataCmdImpl(app, use, short, true, addFlags, fieldMap, nil, fn)
 }
 
-func dataCmdImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags func(*cobra.Command), fieldMap map[string]string, fn callWithBody) *cobra.Command {
+func dataCmdImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags func(*cobra.Command), fieldMap map[string]string, defaults map[string]interface{}, fn callWithBody) *cobra.Command {
 	c := &cobra.Command{Use: use, Short: short}
 	if use == "create" {
 		c.Aliases = []string{"new"}
@@ -321,6 +350,11 @@ func dataCmdImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags f
 		body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
 		if err != nil {
 			return err
+		}
+		for k, v := range defaults {
+			if _, exists := body[k]; !exists {
+				body[k] = v
+			}
 		}
 		id := ""
 		if withID {

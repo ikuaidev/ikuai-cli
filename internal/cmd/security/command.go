@@ -24,6 +24,7 @@ var (
 	// aclCreateDefaults provides required fields the iKuai API expects
 	// but are not exposed as flags (sensible defaults for most use cases).
 	aclCreateDefaults = map[string]interface{}{
+		"enabled":       "yes",
 		"ip_type":       "4",
 		"ctdir":         0,
 		"dir":           "forward",
@@ -76,9 +77,11 @@ var (
 		"enabled":  "enabled",
 	}
 	l7CreateDefaults = map[string]interface{}{
-		"comment":  "",
-		"src_addr": "",
-		"dst_addr": "",
+		"enabled":   "yes",
+		"comment":   "",
+		"app_proto": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
+		"src_addr":  "",
+		"dst_addr":  "",
 		"time": map[string]interface{}{
 			"custom": []interface{}{
 				map[string]interface{}{
@@ -102,6 +105,7 @@ var (
 		"enabled": "enabled",
 	}
 	macCreateDefaults = map[string]interface{}{
+		"enabled": "yes",
 		"expires": 0,
 		"comment": "",
 		"time": map[string]interface{}{
@@ -131,6 +135,7 @@ var (
 		"enabled":  "enabled",
 	}
 	peerconnCreateDefaults = map[string]interface{}{
+		"enabled":  "yes",
 		"comment":  "",
 		"src_addr": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"dst_port": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
@@ -183,7 +188,9 @@ var (
 		"enabled": "enabled",
 	}
 	urlBlackCreateDefaults = map[string]interface{}{
-		"comment":  "",
+		"enabled": "yes",
+		"domain":  map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
+		"comment": "",
 		"src_addr": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"time":     map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 	}
@@ -192,6 +199,19 @@ var (
 	urlBlackAddrFields = map[string]string{
 		"domain":   "domain",
 		"src-addr": "src_addr",
+	}
+
+	domainBlacklistCreateDefaults = map[string]interface{}{
+		"enabled": "yes",
+	}
+	urlKeywordsCreateDefaults = map[string]interface{}{
+		"enabled": "yes",
+	}
+	urlRedirectCreateDefaults = map[string]interface{}{
+		"enabled": "yes",
+	}
+	urlReplaceCreateDefaults = map[string]interface{}{
+		"enabled": "yes",
 	}
 
 	// mac set-mode: acl_mac (0=blacklist, 1=whitelist)
@@ -277,14 +297,17 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			requiredCreateFlags: []string{"name", "mode"},
 		}),
 		secGroup(app, "keywords", "URL keyword rules", "security/url-keywords/rules", false, urlKeywordsFieldMap, secGroupOpts{
+			createDefaults:      urlKeywordsCreateDefaults,
 			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "ori_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
 			requiredCreateFlags: []string{"name", "mode", "src-url", "ori-keyword", "rep-keyword", "hit-rate", "priority"},
 		}),
 		secGroup(app, "redirect", "URL redirect rules", "security/url-redirect/rules", false, urlRedirectFieldMap, secGroupOpts{
+			createDefaults:      urlRedirectCreateDefaults,
 			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "dst_url", "hit_rate", "prio", "enabled"},
 			requiredCreateFlags: []string{"name", "mode", "src-url", "dst-url", "hit-rate", "priority"},
 		}),
 		secGroup(app, "replace", "URL replace rules", "security/url-replace/rules", false, urlReplaceFieldMap, secGroupOpts{
+			createDefaults:      urlReplaceCreateDefaults,
 			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "param_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
 			requiredCreateFlags: []string{"name", "mode", "src-url", "param-keyword", "rep-keyword", "hit-rate", "priority"},
 		}),
@@ -292,6 +315,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	securityCmd.AddCommand(urlCmd)
 
 	securityCmd.AddCommand(secGroup(app, "domain-blacklist", "Domain blacklist rules", "security/domain-blacklist/rules", false, domainBlacklistFieldMap, secGroupOpts{
+		createDefaults:      domainBlacklistCreateDefaults,
 		requiredCreateFlags: []string{"name", "domain-group"},
 	}))
 	securityCmd.AddCommand(secGroup(app, "peerconn", "Peer connection rules", "security/peerconn/rules", false, peerconnFieldMap, secGroupOpts{

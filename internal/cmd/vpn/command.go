@@ -21,6 +21,7 @@ var (
 		"enabled":   "enabled",
 	}
 	pptpClientDefaults = map[string]interface{}{
+		"enabled":           "yes",
 		"comment":           "",
 		"server_port":       1723,
 		"mtu":               1400,
@@ -43,6 +44,7 @@ var (
 		"enabled":   "enabled",
 	}
 	l2tpClientDefaults = map[string]interface{}{
+		"enabled":           "yes",
 		"comment":           "",
 		"server_port":       1701,
 		"mtu":               1400,
@@ -67,6 +69,7 @@ var (
 		"enabled":     "enabled",
 	}
 	openvpnClientDefaults = map[string]interface{}{
+		"enabled":           "yes",
 		"comment":           "",
 		"remote_port":       "1194",
 		"method":            0,
@@ -97,6 +100,7 @@ var (
 		"enabled":     "enabled",
 	}
 	ikev2ClientDefaults = map[string]interface{}{
+		"enabled":         "yes",
 		"comment":         "",
 		"authby":          "mschapv2",
 		"check_link_mode": 3,
@@ -115,6 +119,7 @@ var (
 		"enabled":      "enabled",
 	}
 	ipsecClientDefaults = map[string]interface{}{
+		"enabled":     "yes",
 		"comment":     "",
 		"keyexchange": "ikev2",
 		"authby":      "secret",
@@ -140,6 +145,7 @@ var (
 		"enabled":   "enabled",
 	}
 	wireguardDefaults = map[string]interface{}{
+		"enabled":          "yes",
 		"interface":        "auto",
 		"local_listenport": 5000,
 		"mtu":              1420,
@@ -157,6 +163,7 @@ var (
 		"enabled":    "enabled",
 	}
 	wireguardPeerDefaults = map[string]interface{}{
+		"enabled":   "yes",
 		"comment":   "",
 		"keepalive": 0,
 	}
@@ -411,12 +418,19 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 	wgCreateFieldMap["private-key"] = "local_privatekey"
 	wgCreateFieldMap["public-key"] = "local_publickey"
 
-	// WireGuard tunnel create has no RequireFlags here — local_privatekey/local_publickey
-	// are B2-class missing fields tracked separately, not in this validation pass.
 	wgCreateCmd := writeCmd(app, "create", "Create a WireGuard tunnel", false, wgCreateFieldMap, nil, wireguardDefaults,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard", body)
 		})
+	{
+		origRunE := wgCreateCmd.RunE
+		wgCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "name", "address", "private-key", "public-key"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	peerCreateCmd := writeCmd(app, "peer-create ID", "Create a peer on a WireGuard tunnel", true, wireguardPeerFieldMap, nil, wireguardPeerDefaults,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard/"+id+"/peers", body)

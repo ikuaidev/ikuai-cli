@@ -110,6 +110,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"enabled":    "enabled",
 	}
 	schedulesDefaults := map[string]interface{}{
+		"enabled": "yes",
 		"event":   "reboot",
 		"comment": "",
 	}
