@@ -175,6 +175,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"enabled":    "enabled",
 	}
 	dnsProxyCreateDefaults := map[string]interface{}{
+		"enabled":  "yes",
 		"is_ipv6":  0,
 		"comment":  "",
 		"src_addr": "",
@@ -303,6 +304,13 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			for k, v := range map[string]interface{}{
+				"enabled": "yes", "delay": 0, "check_addr_valid": 0, "check_relay_only": 0,
+			} {
+				if _, exists := body[k]; !exists {
+					body[k] = v
+				}
+			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/dhcp/services", body)
 			if err != nil {
 				return err
@@ -429,6 +437,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpStaticFieldMap)
 			if err != nil {
 				return err
+			}
+			if _, exists := body["enabled"]; !exists {
+				body["enabled"] = "yes"
 			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/dhcp/static", body)
 			if err != nil {
@@ -570,6 +581,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpAccessRuleFieldMap)
 			if err != nil {
 				return err
+			}
+			if _, exists := body["enabled"]; !exists {
+				body["enabled"] = "yes"
 			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/dhcp/access-control/rules", body)
 			if err != nil {
@@ -829,6 +843,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			body, err := cliapp.MergeDataWithFlags(data, cmd, vlanFieldMap)
 			if err != nil {
 				return err
+			}
+			if _, exists := body["enabled"]; !exists {
+				body["enabled"] = "yes"
 			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/vlan", body)
 			if err != nil {

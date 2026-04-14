@@ -17,7 +17,7 @@ ikuai-cli system ntp-sync
 
 ```bash
 ikuai-cli system schedules list
-ikuai-cli system schedules create --name "weekly_reboot" --strategy week --cycle-time "7" --time "03:00" --enabled yes
+ikuai-cli system schedules create --name "weekly_reboot" --strategy week --cycle-time "7" --time "03:00"
 # defaults: event=reboot
 ikuai-cli system schedules toggle <ID> --enabled no
 ikuai-cli system schedules delete <ID>

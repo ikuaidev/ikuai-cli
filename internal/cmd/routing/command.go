@@ -23,8 +23,10 @@ var (
 		"src-addr": "src_addr",
 	}
 	domainDefaults = map[string]interface{}{
+		"enabled":  "yes",
 		"comment":  "",
 		"prio":     31,
+		"domain":   map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"src_addr": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"time": map[string]interface{}{
 			"custom": []interface{}{
@@ -49,6 +51,7 @@ var (
 		"dst-port": "dst_port",
 	}
 	fiveTupleDefaults = map[string]interface{}{
+		"enabled":      "yes",
 		"comment":      "",
 		"type":         0,
 		"mode":         0,
@@ -81,7 +84,9 @@ var (
 		"src-addr":  "src_addr",
 	}
 	l7Defaults = map[string]interface{}{
+		"enabled":    "yes",
 		"comment":    "",
+		"app_proto":  map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"mode":       0,
 		"prio":       31,
 		"iface_band": 0,
@@ -103,6 +108,7 @@ var (
 		"enabled":   "enabled",
 	}
 	loadBalanceDefaults = map[string]interface{}{
+		"enabled":  "yes",
 		"comment":  "",
 		"mode":     0,
 		"weight":   "1",
@@ -124,6 +130,7 @@ var (
 		"dst-port": "dst_port",
 	}
 	updownDefaults = map[string]interface{}{
+		"enabled":  "yes",
 		"comment":  "",
 		"protocol": "any",
 		"src_addr": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
@@ -197,6 +204,7 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 		"enabled":   "enabled",
 	}
 	staticDefaults := map[string]interface{}{
+		"enabled": "yes",
 		"ip_type": "4",
 		"comment": "",
 		"prio":    1,

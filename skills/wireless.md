@@ -9,7 +9,7 @@ description: iKuai wireless — blacklist/whitelist rules, VLAN rules, AC manage
 
 ```bash
 ikuai-cli wireless blacklist list
-ikuai-cli wireless blacklist create --name "block1" --mac "00:11:22:33:44:55" --enabled yes
+ikuai-cli wireless blacklist create --name "block1" --mac "00:11:22:33:44:55"
 # defaults: mode=0(黑名单), lssid=ALL, lap=ALL, week=1234567, time=00:00-23:59
 ikuai-cli wireless blacklist toggle <ID> --enabled no
 ikuai-cli wireless blacklist delete <ID>
@@ -19,7 +19,7 @@ ikuai-cli wireless blacklist delete <ID>
 
 ```bash
 ikuai-cli wireless vlan list
-ikuai-cli wireless vlan create --name "iot_vlan" --vlan-id 100 --mac "00:11:22:33:44:55" --enabled yes
+ikuai-cli wireless vlan create --name "iot_vlan" --vlan-id 100 --mac "00:11:22:33:44:55"
 ikuai-cli wireless vlan toggle <ID> --enabled no
 ikuai-cli wireless vlan delete <ID>
 ```

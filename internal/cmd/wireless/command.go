@@ -25,7 +25,9 @@ var (
 		"mac": "lmac",
 	}
 	blacklistDefaults = map[string]interface{}{
+		"enabled": "yes",
 		"mode":    0,
+		"lmac":    map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"lssid":   "ALL",
 		"lap":     "ALL",
 		"week":    "1234567",
@@ -44,7 +46,9 @@ var (
 		"mac": "lmac",
 	}
 	vlanDefaults = map[string]interface{}{
+		"enabled": "yes",
 		"lssid":   "ALL",
+		"lmac":    map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"comment": "",
 	}
 )
