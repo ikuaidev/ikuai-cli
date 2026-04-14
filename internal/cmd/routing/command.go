@@ -8,6 +8,36 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// flagDescs provides human-readable descriptions for CLI flags.
+// writeCmd falls back to "flagName value" when a key is absent.
+var flagDescs = map[string]string{
+	// common
+	"name":      "Rule name",
+	"interface": "Outbound interface (e.g. wan1)",
+	"priority":  "Priority (lower = higher)",
+	"comment":   "Comment",
+	// static / five-tuple shared
+	"dst-addr": "Destination address",
+	"gateway":  "Next-hop gateway IP",
+	"netmask":  "Subnet mask",
+	// stream domain
+	"domain": "Domain list (comma-separated)",
+	// stream five-tuple
+	"protocol": "Protocol (tcp/udp/any)",
+	"src-addr": "Source address (comma-separated)",
+	"src-port": "Source port (comma-separated)",
+	"dst-port": "Destination port (comma-separated)",
+	// stream l7
+	"app-proto": "App protocol (comma-separated)",
+	// stream load-balance
+	"mode":     "Balance mode",
+	"weight":   "Weight",
+	"isp-name": "ISP filter (default: all)",
+	// stream updown
+	"upiface":   "Upstream interface",
+	"downiface": "Downstream interface",
+}
+
 // --- Field maps, addr fields, and defaults for stream subcommands ---
 
 var (
@@ -235,6 +265,7 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/routing/static-routes", body)
 		})
+	cliapp.MarkFlagsRequired(createCmd, "name", "dst-addr", "gateway", "netmask", "interface")
 	{
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -301,6 +332,7 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 		})
 	if len(opts.requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(createCmd, opts.requiredCreateFlags...)
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := cliapp.RequireFlags(cmd, opts.requiredCreateFlags...); err != nil {
@@ -377,13 +409,24 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		if flagName == "enabled" {
 			continue
 		}
-		c.Flags().String(flagName, "", flagName+" value")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = flagName + " value"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	// Register addrFields flags.
 	for flagName := range addrFields {
-		c.Flags().String(flagName, "", "Comma-separated "+flagName+" values")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = "Comma-separated " + flagName + " values"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	cliapp.AddEnabledFlag(c)
+	if strings.HasPrefix(use, "toggle") {
+		cliapp.MarkFlagsRequired(c, "enabled")
+	}
 
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {

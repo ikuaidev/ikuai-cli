@@ -120,6 +120,17 @@ func RequireFlags(cmd *cobra.Command, flags ...string) error {
 	return &ValidationError{Message: "missing required flags: " + strings.Join(missing, ", ")}
 }
 
+// MarkFlagsRequired appends " (required)" to the usage text of each named flag.
+// Call after all flags are registered so --help shows which flags are mandatory.
+func MarkFlagsRequired(cmd *cobra.Command, flags ...string) {
+	for _, name := range flags {
+		f := cmd.Flags().Lookup(name)
+		if f != nil && !strings.HasSuffix(f.Usage, "(required)") {
+			f.Usage += " (required)"
+		}
+	}
+}
+
 // AddEnabledFlag adds --enabled flag accepting "yes" or "no".
 func AddEnabledFlag(cmd *cobra.Command) {
 	cmd.Flags().String("enabled", "", "Enable/disable: yes|no")

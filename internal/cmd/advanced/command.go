@@ -237,6 +237,7 @@ func userGroupWithConfig(app *cliapp.Runtime, use, short, userAPIPath, configGet
 		return app.APIClient.Post(cliapp.APIBase+"/"+userAPIPath, body)
 	})
 	if len(requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(createCmd, requiredCreateFlags...)
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
@@ -370,6 +371,9 @@ func dataCmdImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags f
 	c.Flags().String("data", "{}", "JSON body (escape hatch)")
 	if addFlags != nil {
 		addFlags(c)
+	}
+	if strings.HasPrefix(use, "toggle") {
+		cliapp.MarkFlagsRequired(c, "enabled")
 	}
 	return c
 }

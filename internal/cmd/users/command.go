@@ -8,6 +8,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// flagDescs provides human-readable descriptions for CLI flags.
+var flagDescs = map[string]string{
+	"username":   "Login username",
+	"password":   "Login password",
+	"ppptype":    "PPP type (any/pppoe/pptp/l2tp)",
+	"upload":     "Upload bandwidth limit (KB/s, 0=unlimited)",
+	"download":   "Download bandwidth limit (KB/s, 0=unlimited)",
+	"share":      "Max concurrent sessions",
+	"comment":    "Comment",
+	"name":       "Package name",
+	"time":       "Duration (hours)",
+	"price":      "Price",
+	"up-speed":   "Upload speed limit (KB/s)",
+	"down-speed": "Download speed limit (KB/s)",
+}
+
 var (
 	accountFieldMap = map[string]string{
 		"username": "username",
@@ -136,6 +152,7 @@ func accountsGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/auth/users", body)
 		})
+	cliapp.MarkFlagsRequired(createCmd, "username", "password")
 	{
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -185,6 +202,7 @@ func packagesGroup(app *cliapp.Runtime) *cobra.Command {
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/auth/packages", body)
 		})
+	cliapp.MarkFlagsRequired(pkgCreateCmd, "name", "time", "price", "up-speed", "down-speed")
 	{
 		origRunE := pkgCreateCmd.RunE
 		pkgCreateCmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -270,12 +288,23 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		if flagName == "enabled" {
 			continue
 		}
-		c.Flags().String(flagName, "", flagName+" value")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = flagName + " value"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	for flagName := range addrFields {
-		c.Flags().String(flagName, "", "Comma-separated "+flagName+" values")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = "Comma-separated " + flagName + " values"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	cliapp.AddEnabledFlag(c)
+	if strings.HasPrefix(use, "toggle") {
+		cliapp.MarkFlagsRequired(c, "enabled")
+	}
 
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {

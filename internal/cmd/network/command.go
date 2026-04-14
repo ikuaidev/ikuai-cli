@@ -8,6 +8,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// natFlagDescs provides human-readable descriptions for NAT/DNAT CLI flags.
+var natFlagDescs = map[string]string{
+	"name":          "Rule name",
+	"action":        "NAT action (SNAT/DNAT/MASQUERADE)",
+	"protocol":      "Protocol (tcp/udp/any)",
+	"in-interface":  "Inbound interface",
+	"out-interface": "Outbound interface",
+	"comment":       "Comment",
+	"wan-port":      "WAN port",
+	"lan-addr":      "LAN target address",
+	"lan-port":      "LAN target port",
+	"src-addr":      "Source address (comma-separated)",
+	"dst-addr":      "Destination address (comma-separated)",
+	"src-port":      "Source port (comma-separated)",
+	"dst-port":      "Destination port (comma-separated)",
+}
+
 func New(app *cliapp.Runtime) *cobra.Command {
 	networkCmd := &cobra.Command{
 		Use:   "network",
@@ -989,6 +1006,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("comment", "", "Comment")
 		cliapp.AddEnabledFlag(c)
 	}
+	cliapp.MarkFlagsRequired(networkDNSProxyCreateCmd, "domain", "dns-addr", "parse-type")
 
 	networkCmd.AddCommand(networkDHCPCmd)
 	networkDHCPCmd.AddCommand(
@@ -1034,7 +1052,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("data", "{}", "JSON body")
 	}
 	cliapp.AddEnabledFlag(networkDHCPToggleCmd)
+	cliapp.MarkFlagsRequired(networkDHCPToggleCmd, "enabled")
 	cliapp.AddEnabledFlag(networkDHCPStaticToggleCmd)
+	cliapp.MarkFlagsRequired(networkDHCPStaticToggleCmd, "enabled")
 	// DHCP access-mode set semantic flags
 	networkDHCPAccessModeSetCmd.Flags().String("mode", "", "Access mode (0=blacklist, 1=whitelist, 2=sync MAC ACL)")
 	// DHCP access-rule create semantic flags
@@ -1056,6 +1076,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("lease", "", "Lease time")
 		cliapp.AddEnabledFlag(c)
 	}
+	cliapp.MarkFlagsRequired(networkDHCPCreateCmd, "name", "interface", "addr-pool", "netmask", "gateway", "lease", "phy-ifnames")
 	// DHCP static create/update semantic flags
 	for _, c := range []*cobra.Command{networkDHCPStaticCreateCmd, networkDHCPStaticUpdateCmd} {
 		c.Flags().String("name", "", "Binding name")
@@ -1067,6 +1088,8 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("comment", "", "Comment")
 		cliapp.AddEnabledFlag(c)
 	}
+	cliapp.MarkFlagsRequired(networkDHCPStaticCreateCmd, "name", "ip", "mac", "interface")
+	cliapp.MarkFlagsRequired(networkDHCPAccessRuleCreateCmd, "name", "mac", "comment")
 
 	networkCmd.AddCommand(networkDHCP6Cmd)
 	networkDHCP6Cmd.AddCommand(
@@ -1094,6 +1117,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("data", "{}", "JSON body")
 	}
 	cliapp.AddEnabledFlag(networkDHCP6AccessRuleToggleCmd)
+	cliapp.MarkFlagsRequired(networkDHCP6AccessRuleToggleCmd, "enabled")
 
 	networkCmd.AddCommand(networkVLANCmd)
 	networkVLANCmd.AddCommand(
@@ -1108,6 +1132,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("data", "{}", "JSON body")
 	}
 	cliapp.AddEnabledFlag(networkVLANToggleCmd)
+	cliapp.MarkFlagsRequired(networkVLANToggleCmd, "enabled")
 	// VLAN create/update semantic flags
 	for _, c := range []*cobra.Command{networkVLANCreateCmd, networkVLANUpdateCmd} {
 		c.Flags().String("name", "", "VLAN name")
@@ -1119,6 +1144,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("comment", "", "Comment")
 		cliapp.AddEnabledFlag(c)
 	}
+	cliapp.MarkFlagsRequired(networkVLANCreateCmd, "name", "vlan-id", "interface", "netmask")
 
 	natFieldMap := map[string]string{
 		"name":          "tagname",
@@ -1263,6 +1289,7 @@ func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[stri
 	}
 	toggleCmd.Flags().String("data", "{}", "JSON body")
 	cliapp.AddEnabledFlag(toggleCmd)
+	cliapp.MarkFlagsRequired(toggleCmd, "enabled")
 
 	deleteCmd := newDeleteCmd(app, "Delete a "+use+" rule", "/"+apiPath+"/")
 
@@ -1284,7 +1311,11 @@ func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath st
 
 	// Register address/port flags.
 	for flagName := range addrFields {
-		c.Flags().String(flagName, "", "Comma-separated "+flagName+" values")
+		desc := natFlagDescs[flagName]
+		if desc == "" {
+			desc = "Comma-separated " + flagName + " values"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 
 	if fieldMap != nil {
@@ -1292,7 +1323,11 @@ func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath st
 			if flagName == "enabled" {
 				continue
 			}
-			c.Flags().String(flagName, "", flagName+" value")
+			desc := natFlagDescs[flagName]
+			if desc == "" {
+				desc = flagName + " value"
+			}
+			c.Flags().String(flagName, "", desc)
 		}
 		cliapp.AddEnabledFlag(c)
 

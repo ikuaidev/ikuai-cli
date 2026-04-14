@@ -8,6 +8,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// flagDescs provides human-readable descriptions for CLI flags.
+var flagDescs = map[string]string{
+	"name":    "Rule name",
+	"mode":    "Mode (0=blacklist, 1=whitelist)",
+	"ssid":    "SSID filter (default: ALL)",
+	"ap":      "AP filter (default: ALL)",
+	"mac":     "MAC address (comma-separated)",
+	"week":    "Active days (e.g. 1234567)",
+	"time":    "Active time range (e.g. 00:00-23:59)",
+	"vlan-id": "VLAN ID",
+	"comment": "Comment",
+}
+
 // --- Field maps, addr fields, and defaults for wireless subcommands ---
 
 var (
@@ -116,6 +129,7 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 		})
 	if len(opts.requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(createCmd, opts.requiredCreateFlags...)
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := cliapp.RequireFlags(cmd, opts.requiredCreateFlags...); err != nil {
@@ -319,12 +333,23 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		if flagName == "enabled" {
 			continue
 		}
-		c.Flags().String(flagName, "", flagName+" value")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = flagName + " value"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	for flagName := range addrFields {
-		c.Flags().String(flagName, "", "Comma-separated "+flagName+" values")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = "Comma-separated " + flagName + " values"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 	cliapp.AddEnabledFlag(c)
+	if strings.HasPrefix(use, "toggle") {
+		cliapp.MarkFlagsRequired(c, "enabled")
+	}
 
 	c.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := app.RequireAuth(); err != nil {

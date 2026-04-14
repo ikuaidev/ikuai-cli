@@ -8,6 +8,34 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// flagDescs provides human-readable descriptions for CLI flags.
+var flagDescs = map[string]string{
+	"name":          "Rule name",
+	"action":        "Action (accept/drop/reject)",
+	"protocol":      "Protocol (tcp/udp/icmp/any)",
+	"priority":      "Priority (lower = higher)",
+	"comment":       "Comment",
+	"mac":           "MAC address",
+	"limits":        "Connection limit",
+	"domain-group":  "Domain group name",
+	"mode":          "Match mode (0=exact, 1=regex)",
+	"src-url":       "Source URL pattern",
+	"dst-url":       "Destination URL",
+	"ori-keyword":   "Original keyword",
+	"rep-keyword":   "Replacement keyword",
+	"param-keyword": "Parameter keyword",
+	"hit-rate":      "Hit rate threshold",
+	"domain":        "Domain (comma-separated)",
+	"src-addr":      "Source address (comma-separated)",
+	"dst-addr":      "Destination address (comma-separated)",
+	"src-port":      "Source port (comma-separated)",
+	"dst-port":      "Destination port (comma-separated)",
+	"app-proto":     "App protocol (comma-separated)",
+	"direction":     "Direction (forward/in/out)",
+	"in-interface":  "Inbound interface",
+	"out-interface": "Outbound interface",
+}
+
 // Field maps for semantic flags on write commands.
 var (
 	aclFieldMap = map[string]string{
@@ -403,6 +431,7 @@ func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet
 		return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 	})
 	if len(requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(createCmd, requiredCreateFlags...)
 		origRunE := createCmd.RunE
 		createCmd.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
@@ -447,7 +476,11 @@ func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap m
 
 	// Register address/port flags.
 	for flagName := range addrFields {
-		c.Flags().String(flagName, "", "Comma-separated "+flagName+" values")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = "Comma-separated " + flagName + " values"
+		}
+		c.Flags().String(flagName, "", desc)
 	}
 
 	if fieldMap != nil {
@@ -531,7 +564,11 @@ func addSemanticFlags(cmd *cobra.Command, fieldMap map[string]string) {
 		if flagName == "enabled" {
 			continue
 		}
-		cmd.Flags().String(flagName, "", "Set "+apiField+" field")
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = "Set " + apiField + " field"
+		}
+		cmd.Flags().String(flagName, "", desc)
 	}
 }
 
@@ -605,6 +642,7 @@ func dataCmdImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags f
 	isToggle := strings.HasPrefix(use, "toggle")
 	if isToggle {
 		cliapp.AddEnabledFlag(c)
+		cliapp.MarkFlagsRequired(c, "enabled")
 	}
 	if addFlags != nil {
 		addFlags(c)
