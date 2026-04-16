@@ -127,7 +127,7 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		code := classifyError(err)
 		// Non-TTY: emit JSON error envelope to stderr for machine consumers.
-		if !isTerminalWriter(stderr) {
+		if os.Getenv("IKUAI_FORCE_TTY") != "1" && !isTerminalWriter(stderr) {
 			envelope := map[string]interface{}{
 				"ok":    false,
 				"error": buildErrorPayload(err, code),
