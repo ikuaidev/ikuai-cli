@@ -18,7 +18,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
   ikuai-cli monitor clients-online`,
 	}
 
-	monitorCmd.AddCommand(simpleGetCmd(app, "system", "System overview", "/monitoring/system"))
+	monitorCmd.AddCommand(simpleGetCmd(app, "system", "System overview", "/monitoring/system", nil))
 	monitorCmd.AddCommand(loadCmd(app, "cpu", "CPU load history", "/monitoring/cpu"))
 	monitorCmd.AddCommand(loadCmd(app, "memory", "Memory usage history", "/monitoring/memory"))
 	monitorCmd.AddCommand(loadCmd(app, "disk", "Disk usage history", "/monitoring/disk"))
@@ -26,37 +26,45 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	monitorCmd.AddCommand(loadCmd(app, "terminals", "Terminal count history", "/monitoring/terminals"))
 	monitorCmd.AddCommand(loadCmd(app, "connections", "Connection count history", "/monitoring/connections"))
 	monitorCmd.AddCommand(loadCmd(app, "network-load", "Network load history", "/monitoring/network"))
-	monitorCmd.AddCommand(simpleGetCmd(app, "downstream", "Downstream traffic", "/monitoring/downstream"))
+	monitorCmd.AddCommand(simpleGetCmd(app, "downstream", "Downstream traffic", "/monitoring/downstream",
+		[]string{"id", "name", "ip_addr", "device", "method", "status", "port", "protocol", "enabled"}))
+
+	onlineCols := []string{"id", "ip_addr", "mac", "hostname", "interface", "upload", "download", "connect_num", "uptime", "client_type", "comment"}
+	offlineCols := []string{"id", "ip_addr", "mac", "hostname", "interface", "total_up", "total_down", "uptime", "downtime", "client_type"}
 
 	for _, c := range []*cobra.Command{
-		pagedCmd(app, "clients-online", "Online IPv4 clients", "/monitoring/clients-online"),
-		pagedCmd(app, "clients-offline", "Offline IPv4 clients", "/monitoring/clients-offline"),
-		pagedCmd(app, "clients-ip6-online", "Online IPv6 clients", "/monitoring/clients-ip6-online"),
-		pagedCmd(app, "clients-ip6-offline", "Offline IPv6 clients", "/monitoring/clients-ip6-offline"),
-		pagedCmd(app, "traffic-summary", "Client traffic summary", "/monitoring/clients-traffic-summary"),
+		pagedCmd(app, "clients-online", "Online IPv4 clients", "/monitoring/clients-online", onlineCols),
+		pagedCmd(app, "clients-offline", "Offline IPv4 clients", "/monitoring/clients-offline", offlineCols),
+		pagedCmd(app, "clients-ip6-online", "Online IPv6 clients", "/monitoring/clients-ip6-online", onlineCols),
+		pagedCmd(app, "clients-ip6-offline", "Offline IPv6 clients", "/monitoring/clients-ip6-offline", offlineCols),
+		pagedCmd(app, "traffic-summary", "Client traffic summary", "/monitoring/clients-traffic-summary",
+			[]string{"id", "ip_addr", "mac", "username", "sum_total_up", "sum_total_down", "sum_total", "comment"}),
 		monitorTrafficLoadCmd(app),
 		monitorClientProtocolsCmd(app),
 		monitorClientProtocolsHistoryCmd(app),
 		monitorClientAppProtocolsCmd(app),
 		monitorAppTrafficSummaryCmd(app),
-		simpleGetCmd(app, "protocols", "Protocol distribution", "/monitoring/protocols"),
-		simpleGetCmd(app, "protocols-history", "Protocol history", "/monitoring/protocols/history-load"),
+		simpleGetCmd(app, "protocols", "Protocol distribution", "/monitoring/protocols", nil),
+		simpleGetCmd(app, "protocols-history", "Protocol history", "/monitoring/protocols/history-load",
+			[]string{"proto_name", "timestamp", "upload", "download", "total"}),
 		monitorAppProtocolsLoadCmd(app),
 		monitorAppProtocolsHistoryCmd(app),
 		monitorAppProtocolsTerminalsCmd(app),
-		simpleGetCmd(app, "interfaces", "WAN interface status", "/monitoring/interfaces-status"),
-		simpleGetCmd(app, "interfaces-traffic", "Per-interface traffic", "/monitoring/interfaces-traffic"),
-		simpleGetCmd(app, "interfaces-config", "Interface config", "/monitoring/interfaces-config"),
-		simpleGetCmd(app, "interfaces-physical", "Physical NIC info", "/monitoring/interfaces-physical"),
-		simpleGetCmd(app, "interfaces-traffic-v6", "IPv6 interface traffic", "/monitoring/interfaces-traffic-v6"),
-		simpleGetCmd(app, "wireless-stats", "Wireless statistics", "/monitoring/wireless-statistics"),
-		simpleGetCmd(app, "wireless-score", "Wireless quality score", "/monitoring/wireless-score"),
-		simpleGetCmd(app, "wireless-traffic", "Per-AP traffic", "/monitoring/wireless-traffic"),
-		simpleGetCmd(app, "ssid-clients", "SSID client distribution", "/monitoring/ssid-clients"),
-		simpleGetCmd(app, "channel-clients", "Channel client distribution", "/monitoring/channel-clients"),
-		simpleGetCmd(app, "cameras", "IP camera list", "/monitoring/cameras"),
-		simpleGetCmd(app, "flow-shunting", "Traffic shunting", "/monitoring/flow-shunting"),
-		simpleGetCmd(app, "switch", "Switch port monitoring", "/monitoring/switch"),
+		simpleGetCmd(app, "interfaces", "WAN interface status", "/monitoring/interfaces-status", nil),
+		simpleGetCmd(app, "interfaces-traffic", "Per-interface traffic", "/monitoring/interfaces-traffic", nil),
+		simpleGetCmd(app, "interfaces-config", "Interface config", "/monitoring/interfaces-config", nil),
+		simpleGetCmd(app, "interfaces-physical", "Physical NIC info", "/monitoring/interfaces-physical", nil),
+		simpleGetCmd(app, "interfaces-traffic-v6", "IPv6 interface traffic", "/monitoring/interfaces-traffic-v6", nil),
+		simpleGetCmd(app, "wireless-stats", "Wireless statistics", "/monitoring/wireless-statistics", nil),
+		simpleGetCmd(app, "wireless-score", "Wireless quality score", "/monitoring/wireless-score", nil),
+		simpleGetCmd(app, "wireless-traffic", "Per-AP traffic", "/monitoring/wireless-traffic", nil),
+		simpleGetCmd(app, "ssid-clients", "SSID client distribution", "/monitoring/ssid-clients", nil),
+		simpleGetCmd(app, "channel-clients", "Channel client distribution", "/monitoring/channel-clients", nil),
+		simpleGetCmd(app, "cameras", "IP camera list", "/monitoring/cameras",
+			[]string{"id", "tagname", "name", "vendor", "ip_addr", "mac", "flag", "status", "enabled"}),
+		simpleGetCmd(app, "flow-shunting", "Traffic shunting", "/monitoring/flow-shunting", nil),
+		simpleGetCmd(app, "switch", "Switch port monitoring", "/monitoring/switch",
+			[]string{"id", "name", "ip_addr", "mac", "device", "version", "type", "status"}),
 	} {
 		monitorCmd.AddCommand(c)
 	}
@@ -106,17 +114,20 @@ func loadCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
 	return c
 }
 
-func simpleGetCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
-	return simpleGetWithParamsCmd(app, use, short, apiPath, nil)
+func simpleGetCmd(app *cliapp.Runtime, use, short, apiPath string, cols []string) *cobra.Command {
+	return simpleGetWithParamsCmd(app, use, short, apiPath, nil, cols)
 }
 
-func simpleGetWithParamsCmd(app *cliapp.Runtime, use, short, apiPath string, params map[string]string) *cobra.Command {
+func simpleGetWithParamsCmd(app *cliapp.Runtime, use, short, apiPath string, params map[string]string, defaultCols []string) *cobra.Command {
 	return &cobra.Command{
 		Use:   use,
 		Short: short,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
 				return err
+			}
+			if len(defaultCols) > 0 {
+				app.DefaultColumns = defaultCols
 			}
 			raw, err := app.APIClient.Get(cliapp.APIBase+apiPath, params)
 			if err != nil {
@@ -128,13 +139,16 @@ func simpleGetWithParamsCmd(app *cliapp.Runtime, use, short, apiPath string, par
 	}
 }
 
-func pagedCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
+func pagedCmd(app *cliapp.Runtime, use, short, apiPath string, defaultCols []string) *cobra.Command {
 	c := &cobra.Command{
 		Use:   use,
 		Short: short,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
 				return err
+			}
+			if len(defaultCols) > 0 {
+				app.DefaultColumns = defaultCols
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+apiPath,
@@ -163,6 +177,7 @@ func monitorTrafficLoadCmd(app *cliapp.Runtime) *cobra.Command {
 			if ip == "" || mac == "" {
 				return fmt.Errorf("both --ip and --mac are required")
 			}
+			app.DefaultColumns = []string{"timestamp", "upload", "download", "conn_num"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/clients-traffic-load", map[string]string{
 				"ip": ip, "mac": mac,
 			})
@@ -193,6 +208,7 @@ func monitorClientProtocolsCmd(app *cliapp.Runtime) *cobra.Command {
 			if ip == "" || mac == "" {
 				return fmt.Errorf("both --ip and --mac are required")
 			}
+			app.DefaultColumns = []string{"id", "proto", "proto_name", "total"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/clients/protocols", map[string]string{
 				"ip": ip, "mac": mac,
 			})
@@ -223,6 +239,7 @@ func monitorClientProtocolsHistoryCmd(app *cliapp.Runtime) *cobra.Command {
 			if ip == "" || mac == "" {
 				return fmt.Errorf("both --ip and --mac are required")
 			}
+			app.DefaultColumns = []string{"id", "proto_name", "timestamp", "upload", "download", "total"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/clients/protocols/history-load", map[string]string{
 				"ip": ip, "mac": mac,
 			})
@@ -253,6 +270,7 @@ func monitorClientAppProtocolsCmd(app *cliapp.Runtime) *cobra.Command {
 			if ip == "" || mac == "" {
 				return fmt.Errorf("both --ip and --mac are required")
 			}
+			app.DefaultColumns = []string{"id", "app_name", "conn_cnt", "upload", "download", "total"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/clients/app-protocols/load", map[string]string{
 				"ip": ip, "mac": mac,
 			})
@@ -279,6 +297,7 @@ func monitorAppTrafficSummaryCmd(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			app.DefaultColumns = []string{"id", "appname", "appname_level1", "appname_level2", "total_up", "total_down", "total", "appid"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/app-traffic-summary",
 				cliapp.ListParams(page, pageSize, filter, order, orderBy))
 			if err != nil {
@@ -301,6 +320,7 @@ func monitorAppProtocolsLoadCmd(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			page, pageSize, _, order, orderBy := cliapp.GetListParams(cmd)
+			app.DefaultColumns = []string{"id", "appname", "conn_cnt", "upload", "download", "total_up", "total_down", "total"}
 			p := map[string]string{"page": intStr(page), "page_size": intStr(pageSize)}
 			if order != "" {
 				p["order"] = order
@@ -328,6 +348,7 @@ func monitorAppProtocolsHistoryCmd(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "appname", "timestamp", "upload", "download", "total"}
 			appids, _ := cmd.Flags().GetString("appids")
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/app-protocols/history-load", map[string]string{
 				"appids": appids,
@@ -352,6 +373,7 @@ func monitorAppProtocolsTerminalsCmd(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "ipaddr", "mac", "hostname", "client_type", "conn_cnt", "upload", "download", "total_up"}
 			appid, _ := cmd.Flags().GetString("appid")
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/app-protocols/terminal-load", map[string]string{
 				"appid": appid,
