@@ -93,6 +93,8 @@ ikuai-cli auth status
 ```bash
 ikuai-cli monitor system                     # CPU, memory, uptime, WAN IP
 ikuai-cli network dns get                    # DNS config
+ikuai-cli network dns proxy create --domain example.com --dns-addr 8.8.8.8 --parse-type ipv4
+ikuai-cli network pppoe set --comment maintenance --mtu 1480 --mru 1480
 ikuai-cli users online                       # Online users
 ikuai-cli security acl list                  # Firewall rules
 ikuai-cli log system list --human-time       # System logs
