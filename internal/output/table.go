@@ -212,7 +212,7 @@ func renderObjectTable(w io.Writer, obj map[string]interface{}, humanTime bool, 
 		k := mapKeys[0]
 		inner := obj[k].(map[string]interface{})
 		if isMapOfMaps(inner) {
-			renderMapOfMapsTable(w, inner, humanTime, termWidth)
+			renderMapOfMapsTable(w, inner, humanTime, columns, termWidth)
 			renderFooter(w, obj, scalarKeys)
 			return
 		}
@@ -221,7 +221,7 @@ func renderObjectTable(w io.Writer, obj map[string]interface{}, humanTime bool, 
 	// Rule 6: Map of maps → horizontal table with NAME column.
 	if len(mapKeys) >= 2 && len(scalarKeys) == 0 && len(objectArrayKeys) == 0 && len(scalarArrayKeys) == 0 {
 		if isMapOfMaps(obj) {
-			renderMapOfMapsTable(w, obj, humanTime, termWidth)
+			renderMapOfMapsTable(w, obj, humanTime, columns, termWidth)
 			return
 		}
 	}
@@ -246,7 +246,7 @@ func isMapOfMaps(m map[string]interface{}) bool {
 
 // renderMapOfMapsTable renders a map-of-maps as a horizontal table keyed by
 // a synthetic NAME column holding the outer key. Outer keys are sorted.
-func renderMapOfMapsTable(w io.Writer, m map[string]interface{}, humanTime bool, termWidth int) {
+func renderMapOfMapsTable(w io.Writer, m map[string]interface{}, humanTime bool, columns []string, termWidth int) {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
@@ -264,7 +264,7 @@ func renderMapOfMapsTable(w io.Writer, m map[string]interface{}, humanTime bool,
 		}
 		items = append(items, row)
 	}
-	renderArrayTable(w, items, humanTime, nil, termWidth)
+	renderArrayTable(w, items, humanTime, columns, termWidth)
 }
 
 // arrayHasObjects reports whether the first non-nil element of arr is a map.

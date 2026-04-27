@@ -60,6 +60,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "tagname", "interface", "vlan_id", "ip_addr", "netmask", "gateway", "enabled"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/interfaces/wan-vlan-config", nil)
 			if err != nil {
 				return err
@@ -93,6 +94,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"name", "interface", "link", "speed", "duplex", "mac", "type", "driver"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/interfaces/physical", nil)
 			if err != nil {
 				return err
@@ -111,6 +113,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "dns1", "dns2", "enabled", "cachemode", "cache_ttl", "proxy_force", "network"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dns/config", nil)
 			if err != nil {
 				return err
@@ -133,7 +136,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.MergeDataWithFlags(data, cmd, dnsSetFieldMap)
+			body, err := buildDNSSetBody(app, cmd, data, dnsSetFieldMap)
 			if err != nil {
 				return err
 			}
@@ -193,7 +196,6 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 	dnsProxyCreateDefaults := map[string]interface{}{
 		"enabled":  "yes",
-		"is_ipv6":  0,
 		"comment":  "",
 		"src_addr": "",
 	}
@@ -219,6 +221,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 					body[k] = v
 				}
 			}
+			applyDNSProxyDerivedDefaults(body)
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/dns/proxy/rules", body)
 			if err != nil {
 				return err
@@ -236,11 +239,20 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "domain", "dns-addr", "parse-type", "enabled"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dnsProxyFieldMap)
 			if err != nil {
 				return err
 			}
+			for k, v := range dnsProxyCreateDefaults {
+				if _, exists := body[k]; !exists {
+					body[k] = v
+				}
+			}
+			applyDNSProxyDerivedDefaults(body)
 			raw, err := app.APIClient.Put(cliapp.APIBase+"/network/dns/proxy/rules/"+args[0], body)
 			if err != nil {
 				return err
@@ -282,6 +294,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "interface", "addr_pool", "gateway", "netmask", "dns1", "lease", "enabled"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/services/"+args[0], nil)
 			if err != nil {
 				return err
@@ -346,7 +359,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpFieldMap)
+			body, err := buildDHCPUpdateBody(app, cmd, data, dhcpFieldMap, args[0])
 			if err != nil {
 				return err
 			}
@@ -395,6 +408,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "ip_addr", "mac", "hostname", "interface", "status", "timeout"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/clients",
 				cliapp.ListParams(page, pageSize, filter, order, orderBy))
@@ -434,6 +448,8 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"mac":       "mac",
 		"interface": "interface",
 		"gateway":   "gateway",
+		"dns1":      "dns1",
+		"dns2":      "dns2",
 		"hostname":  "hostname",
 		"comment":   "comment",
 		"enabled":   "enabled",
@@ -476,7 +492,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpStaticFieldMap)
+			body, err := buildDHCPStaticUpdateBody(app, cmd, data, dhcpStaticFieldMap, args[0])
 			if err != nil {
 				return err
 			}
@@ -542,6 +558,9 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "mode"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpAccessModeFieldMap)
 			if err != nil {
@@ -566,6 +585,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "tagname", "mac", "ip_type", "enabled", "comment"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/access-control/rules",
 				cliapp.ListParams(page, pageSize, filter, order, orderBy))
@@ -706,8 +726,11 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "mode"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.ParseJSON(data)
+			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcpAccessModeFieldMap)
 			if err != nil {
 				return err
 			}
@@ -721,6 +744,13 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 
 	networkDHCP6AccessRuleCmd := &cobra.Command{Use: "access-rule", Short: "DHCPv6 access rules"}
+	dhcp6AccessRuleFieldMap := map[string]string{
+		"name":    "tagname",
+		"mac":     "mac",
+		"comment": "comment",
+		"enabled": "enabled",
+	}
+	dhcp6AccessRuleInputFields := []string{"enabled", "mac", "tagname", "comment"}
 
 	networkDHCP6AccessRulesCmd := &cobra.Command{
 		Use:     "list",
@@ -749,10 +779,19 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if err := cliapp.RequireFlags(cmd, "name", "mac"); err != nil {
+				return err
+			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.ParseJSON(data)
+			body, err := cliapp.MergeDataWithFlags(data, cmd, dhcp6AccessRuleFieldMap)
 			if err != nil {
 				return err
+			}
+			if _, exists := body["enabled"]; !exists {
+				body["enabled"] = "yes"
+			}
+			if _, exists := body["comment"]; !exists {
+				body["comment"] = ""
 			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/dhcp6/access-control/rules", body)
 			if err != nil {
@@ -772,7 +811,11 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.ParseJSON(data)
+			updates, err := cliapp.MergeDataWithFlags(data, cmd, dhcp6AccessRuleFieldMap)
+			if err != nil {
+				return err
+			}
+			body, err := buildNATUpdateBody(app, "network/dhcp6/access-control/rules", args[0], updates, map[string]interface{}{"comment": ""}, dhcp6AccessRuleInputFields)
 			if err != nil {
 				return err
 			}
@@ -840,6 +883,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"interface": "interface",
 		"ip":        "ip_addr",
 		"netmask":   "netmask",
+		"ip-mask":   "ip_mask",
 		"mac":       "mac",
 		"comment":   "comment",
 		"enabled":   "enabled",
@@ -861,8 +905,10 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if _, exists := body["enabled"]; !exists {
-				body["enabled"] = "yes"
+			for k, v := range vlanCreateDefaults() {
+				if _, exists := body[k]; !exists {
+					body[k] = v
+				}
 			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/network/vlan", body)
 			if err != nil {
@@ -882,7 +928,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.MergeDataWithFlags(data, cmd, vlanFieldMap)
+			body, err := buildVLANUpdateBody(app, cmd, data, vlanFieldMap, args[0])
 			if err != nil {
 				return err
 			}
@@ -931,6 +977,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = []string{"id", "enabled", "server_name", "server_ip", "addr_pool", "interface", "authmode", "mtu", "mru"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/pppoe/services", nil)
 			if err != nil {
 				return err
@@ -941,19 +988,38 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	}
 
 	pppoeFieldMap := map[string]string{
-		"enabled":     "enabled",
-		"server-name": "server_name",
-		"server-ip":   "server_ip",
-		"dns1":        "dns1",
-		"dns2":        "dns2",
-		"addr-pool":   "addr_pool",
-		"interface":   "interface",
-		"authmode":    "authmode",
-		"mtu":         "mtu",
-		"mru":         "mru",
-		"radius-ip":   "radius_ip",
-		"secret":      "secret",
-		"comment":     "comment",
+		"enabled":           "enabled",
+		"server-name":       "server_name",
+		"force-verify-name": "force_verify_name",
+		"server-ip":         "server_ip",
+		"dns1":              "dns1",
+		"dns2":              "dns2",
+		"authmode":          "authmode",
+		"nas-identifier":    "nas_identifier",
+		"nas-ip-address":    "nas_ip_address",
+		"radius-ip":         "radius_ip",
+		"secret":            "secret",
+		"authport":          "authport",
+		"accountport":       "accountport",
+		"addr-pool":         "addr_pool",
+		"interface":         "interface",
+		"rate-limit-lan":    "rate_limit_lan",
+		"drop-client":       "drop_client",
+		"force-pppoe":       "force_pppoe",
+		"enhance-check":     "enhance_check",
+		"share-deny":        "share_deny",
+		"bind-vlan":         "bind_vlan",
+		"verify-vlan":       "verify_vlan",
+		"bind-iface":        "bind_iface",
+		"mtu":               "mtu",
+		"mru":               "mru",
+		"lcp-echo-interval": "lcp_echo_interval",
+		"lcp-echo-failure":  "lcp_echo_failure",
+		"maxconnect":        "maxconnect",
+		"restart-timer":     "restart_timer",
+		"restart-week":      "restart_week",
+		"restart-time":      "restart_time",
+		"comment":           "comment",
 	}
 	networkPPPoESetCmd := &cobra.Command{
 		Use:   "set",
@@ -963,7 +1029,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			data, _ := cmd.Flags().GetString("data")
-			body, err := cliapp.MergeDataWithFlags(data, cmd, pppoeFieldMap)
+			body, err := buildPPPoESetBody(app, cmd, data, pppoeFieldMap)
 			if err != nil {
 				return err
 			}
@@ -1007,6 +1073,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		cliapp.AddEnabledFlag(c)
 	}
 	cliapp.MarkFlagsRequired(networkDNSProxyCreateCmd, "domain", "dns-addr", "parse-type")
+	cliapp.MarkFlagsRequired(networkDNSProxyUpdateCmd, "domain", "dns-addr", "parse-type", "enabled")
 
 	networkCmd.AddCommand(networkDHCPCmd)
 	networkDHCPCmd.AddCommand(
@@ -1057,6 +1124,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	cliapp.MarkFlagsRequired(networkDHCPStaticToggleCmd, "enabled")
 	// DHCP access-mode set semantic flags
 	networkDHCPAccessModeSetCmd.Flags().String("mode", "", "Access mode (0=blacklist, 1=whitelist, 2=sync MAC ACL)")
+	cliapp.MarkFlagsRequired(networkDHCPAccessModeSetCmd, "mode")
 	// DHCP access-rule create semantic flags
 	networkDHCPAccessRuleCreateCmd.Flags().String("name", "", "Rule name")
 	networkDHCPAccessRuleCreateCmd.Flags().String("mac", "", "MAC address")
@@ -1084,6 +1152,8 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("mac", "", "MAC address")
 		c.Flags().String("interface", "", "Interface name")
 		c.Flags().String("gateway", "", "Gateway address")
+		c.Flags().String("dns1", "", "Primary DNS server")
+		c.Flags().String("dns2", "", "Secondary DNS server")
 		c.Flags().String("hostname", "", "Hostname")
 		c.Flags().String("comment", "", "Comment")
 		cliapp.AddEnabledFlag(c)
@@ -1116,6 +1186,15 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	} {
 		c.Flags().String("data", "{}", "JSON body")
 	}
+	networkDHCP6AccessModeSetCmd.Flags().String("mode", "", "Access mode (0=blacklist, 1=whitelist)")
+	cliapp.MarkFlagsRequired(networkDHCP6AccessModeSetCmd, "mode")
+	for _, c := range []*cobra.Command{networkDHCP6AccessRuleCreateCmd, networkDHCP6AccessRuleUpdateCmd} {
+		c.Flags().String("name", "", "Rule name")
+		c.Flags().String("mac", "", "MAC address")
+		c.Flags().String("comment", "", "Comment")
+		cliapp.AddEnabledFlag(c)
+	}
+	cliapp.MarkFlagsRequired(networkDHCP6AccessRuleCreateCmd, "name", "mac")
 	cliapp.AddEnabledFlag(networkDHCP6AccessRuleToggleCmd)
 	cliapp.MarkFlagsRequired(networkDHCP6AccessRuleToggleCmd, "enabled")
 
@@ -1140,6 +1219,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("interface", "", "Interface name")
 		c.Flags().String("ip", "", "IP address")
 		c.Flags().String("netmask", "", "Subnet mask")
+		c.Flags().String("ip-mask", "", "Additional IP/mask entries")
 		c.Flags().String("mac", "", "MAC address")
 		c.Flags().String("comment", "", "Comment")
 		cliapp.AddEnabledFlag(c)
@@ -1158,6 +1238,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"enabled":       "enabled",
 	}
 	natCreateDefaults := map[string]interface{}{
+		"enabled":      "yes",
 		"src_addr":     map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"dst_addr":     map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
 		"src_port":     map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
@@ -1168,6 +1249,11 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"comment":      "",
 		"src_addr_inv": 0,
 		"dst_addr_inv": 0,
+	}
+	natInputFields := []string{
+		"tagname", "enabled", "action", "iinterface", "ointerface",
+		"src_addr", "dst_addr", "nat_addr", "nat_port", "protocol", "comment",
+		"src_port", "dst_port", "src_addr_inv", "dst_addr_inv",
 	}
 	natAddrFields := map[string]string{
 		"src-addr": "src_addr",
@@ -1185,15 +1271,55 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		"comment":   "comment",
 		"enabled":   "enabled",
 	}
+	dnatCreateDefaults := map[string]interface{}{
+		"enabled":  "yes",
+		"src_addr": map[string]interface{}{"custom": []interface{}{}, "object": []interface{}{}},
+		"comment":  "",
+	}
+	dnatInputFields := []string{
+		"id", "tagname", "enabled", "lan_addr", "lan_port", "protocol", "interface", "wan_port", "src_addr", "comment",
+	}
+	dnatAddrFields := map[string]string{
+		"src-addr": "src_addr",
+	}
+	dmzFieldMap := map[string]string{
+		"name":      "tagname",
+		"interface": "interface",
+		"lan-addr":  "lan_addr",
+		"protocol":  "protocol",
+		"excl-port": "excl_port",
+		"comment":   "comment",
+		"enabled":   "enabled",
+	}
+	dmzCreateDefaults := map[string]interface{}{
+		"enabled": "yes",
+		"comment": "",
+	}
+	dmzInputFields := []string{
+		"id", "tagname", "enabled", "interface", "lan_addr", "protocol", "excl_port", "comment",
+	}
 
 	networkCmd.AddCommand(
 		natGroup(app, "nat", "NAT rules", "network/nat/rules", natFieldMap, natGroupOpts{
-			createDefaults: natCreateDefaults,
-			addrFields:     natAddrFields,
-			defaultColumns: []string{"id", "tagname", "action", "src_addr", "dst_addr", "protocol", "iinterface", "ointerface", "enabled"},
+			createDefaults:      natCreateDefaults,
+			addrFields:          natAddrFields,
+			defaultColumns:      []string{"id", "tagname", "action", "src_addr", "dst_addr", "protocol", "iinterface", "ointerface", "enabled"},
+			requiredCreateFlags: []string{"name", "action", "in-interface", "out-interface"},
+			inputFields:         natInputFields,
 		}),
-		natGroup(app, "dnat", "DNAT (port-forward) rules", "network/dnat/rules", dnatFieldMap),
-		natGroup(app, "dmz", "DMZ rules", "network/dmz/rules", nil),
+		natGroup(app, "dnat", "DNAT (port-forward) rules", "network/dnat/rules", dnatFieldMap, natGroupOpts{
+			createDefaults:      dnatCreateDefaults,
+			addrFields:          dnatAddrFields,
+			defaultColumns:      []string{"id", "tagname", "lan_addr", "lan_port", "wan_port", "protocol", "interface", "enabled"},
+			requiredCreateFlags: []string{"name", "lan-addr", "lan-port", "wan-port", "protocol", "interface"},
+			inputFields:         dnatInputFields,
+		}),
+		natGroup(app, "dmz", "DMZ rules", "network/dmz/rules", dmzFieldMap, natGroupOpts{
+			createDefaults:      dmzCreateDefaults,
+			defaultColumns:      []string{"id", "tagname", "interface", "lan_addr", "protocol", "excl_port", "enabled"},
+			requiredCreateFlags: []string{"name", "interface", "lan-addr", "protocol", "excl-port"},
+			inputFields:         dmzInputFields,
+		}),
 	)
 
 	networkCmd.AddCommand(networkPPPoECmd)
@@ -1201,14 +1327,33 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	networkPPPoESetCmd.Flags().String("data", "{}", "JSON body")
 	networkPPPoESetCmd.Flags().String("enabled", "", "Service enabled (yes/no)")
 	networkPPPoESetCmd.Flags().String("server-name", "", "Server name")
+	networkPPPoESetCmd.Flags().String("force-verify-name", "", "Force server name verification (0/1)")
 	networkPPPoESetCmd.Flags().String("server-ip", "", "Server IP address")
 	networkPPPoESetCmd.Flags().String("dns1", "", "Primary DNS")
 	networkPPPoESetCmd.Flags().String("dns2", "", "Secondary DNS")
 	networkPPPoESetCmd.Flags().String("addr-pool", "", "Address pool range")
 	networkPPPoESetCmd.Flags().String("interface", "", "Interface name")
 	networkPPPoESetCmd.Flags().String("authmode", "", "Auth mode (0=local, 1=radius)")
+	networkPPPoESetCmd.Flags().String("nas-identifier", "", "NAS identifier")
+	networkPPPoESetCmd.Flags().String("nas-ip-address", "", "NAS IP address")
+	networkPPPoESetCmd.Flags().String("authport", "", "RADIUS auth port")
+	networkPPPoESetCmd.Flags().String("accountport", "", "RADIUS accounting port")
+	networkPPPoESetCmd.Flags().String("rate-limit-lan", "", "Limit LAN access speed (0/1)")
+	networkPPPoESetCmd.Flags().String("drop-client", "", "Block client-to-client access (0/1)")
+	networkPPPoESetCmd.Flags().String("force-pppoe", "", "Force PPPoE access (0/1)")
+	networkPPPoESetCmd.Flags().String("enhance-check", "", "Enhanced disconnect detection (0/1)")
+	networkPPPoESetCmd.Flags().String("share-deny", "", "Shared connection overflow action (0=kick, 1=deny)")
+	networkPPPoESetCmd.Flags().String("bind-vlan", "", "Enable VLAN passthrough binding (0/1)")
+	networkPPPoESetCmd.Flags().String("verify-vlan", "", "Verify VLAN when bind-vlan is enabled (0/1)")
+	networkPPPoESetCmd.Flags().String("bind-iface", "", "Enable interface binding (0/1)")
 	networkPPPoESetCmd.Flags().String("mtu", "", "MTU value")
 	networkPPPoESetCmd.Flags().String("mru", "", "MRU value")
+	networkPPPoESetCmd.Flags().String("lcp-echo-interval", "", "LCP echo interval in seconds")
+	networkPPPoESetCmd.Flags().String("lcp-echo-failure", "", "LCP echo failure count")
+	networkPPPoESetCmd.Flags().String("maxconnect", "", "Maximum client connection duration in hours")
+	networkPPPoESetCmd.Flags().String("restart-timer", "", "Enable scheduled PPPoE restart (0/1)")
+	networkPPPoESetCmd.Flags().String("restart-week", "", "Scheduled restart weekdays, e.g. 1234567")
+	networkPPPoESetCmd.Flags().String("restart-time", "", "Scheduled restart time, e.g. 06:00")
 	networkPPPoESetCmd.Flags().String("radius-ip", "", "RADIUS server IP")
 	networkPPPoESetCmd.Flags().String("secret", "", "RADIUS shared secret")
 	networkPPPoESetCmd.Flags().String("comment", "", "Comment")
@@ -1216,10 +1361,610 @@ func New(app *cliapp.Runtime) *cobra.Command {
 	return networkCmd
 }
 
+func buildDNSSetBody(app *cliapp.Runtime, cmd *cobra.Command, data string, fieldMap map[string]string) (map[string]interface{}, error) {
+	body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+	if err != nil {
+		return nil, err
+	}
+
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/network/dns/config", nil)
+	if err != nil {
+		if hasAllDNSConfigInputFields(body) {
+			return body, nil
+		}
+		return nil, err
+	}
+
+	current, err := extractDNSConfig(raw)
+	if err != nil {
+		if hasAllDNSConfigInputFields(body) {
+			return body, nil
+		}
+		return nil, err
+	}
+	for _, key := range dnsConfigInputFields {
+		if _, exists := body[key]; !exists {
+			if v, ok := current[key]; ok {
+				body[key] = v
+			}
+		}
+	}
+	return body, nil
+}
+
+var dnsConfigInputFields = []string{
+	"enabled",
+	"forbid_dns_4a",
+	"cache_ttl",
+	"cachemode",
+	"proxy_force",
+	"proxy_force_dns",
+	"dns1",
+	"dns2",
+	"query",
+	"defense",
+	"network",
+	"query_args_ip",
+	"query_head_ip",
+}
+
+func hasAllDNSConfigInputFields(body map[string]interface{}) bool {
+	for _, key := range dnsConfigInputFields {
+		if _, ok := body[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func extractDNSConfig(raw json.RawMessage) (map[string]interface{}, error) {
+	var payload interface{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	return findFirstObject(payload)
+}
+
+func findFirstObject(v interface{}) (map[string]interface{}, error) {
+	switch data := v.(type) {
+	case map[string]interface{}:
+		if arr, ok := data["data"].([]interface{}); ok && len(arr) > 0 {
+			return findFirstObject(arr[0])
+		}
+		return data, nil
+	case []interface{}:
+		if len(data) == 0 {
+			return nil, &cliapp.ValidationError{Message: "empty DNS config response"}
+		}
+		return findFirstObject(data[0])
+	default:
+		return nil, &cliapp.ValidationError{Message: "unexpected DNS config response"}
+	}
+}
+
+func applyDNSProxyDerivedDefaults(body map[string]interface{}) {
+	if _, exists := body["is_ipv6"]; exists {
+		return
+	}
+	parseType, _ := body["parse_type"].(string)
+	switch parseType {
+	case "ipv6", "proxy6":
+		body["is_ipv6"] = 1
+	default:
+		body["is_ipv6"] = 0
+	}
+}
+
+func buildDHCPStaticUpdateBody(app *cliapp.Runtime, cmd *cobra.Command, data string, fieldMap map[string]string, id string) (map[string]interface{}, error) {
+	updates, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+	if err != nil {
+		return nil, err
+	}
+
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/network/dhcp/static/"+id, nil)
+	if err != nil {
+		if hasRequiredDHCPStaticInputFields(updates) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	current, err := extractDHCPStaticInput(raw)
+	if err != nil {
+		if hasRequiredDHCPStaticInputFields(updates) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	if _, exists := current["enabled"]; !exists {
+		current["enabled"] = "yes"
+	}
+	return current, nil
+}
+
+func extractDHCPStaticInput(raw json.RawMessage) (map[string]interface{}, error) {
+	var payload interface{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	current, err := findFirstDHCPStaticObject(payload)
+	if err != nil {
+		return nil, err
+	}
+	body := make(map[string]interface{})
+	for _, key := range dhcpStaticInputFields {
+		if v, ok := current[key]; ok {
+			body[key] = v
+		}
+	}
+	return body, nil
+}
+
+func findFirstDHCPStaticObject(v interface{}) (map[string]interface{}, error) {
+	switch data := v.(type) {
+	case map[string]interface{}:
+		if results, ok := data["results"]; ok {
+			return findFirstDHCPStaticObject(results)
+		}
+		if arr, ok := data["static_data"].([]interface{}); ok {
+			if len(arr) == 0 {
+				return nil, &cliapp.ValidationError{Message: "empty DHCP static response"}
+			}
+			return findFirstDHCPStaticObject(arr[0])
+		}
+		if arr, ok := data["data"].([]interface{}); ok {
+			if len(arr) == 0 {
+				return nil, &cliapp.ValidationError{Message: "empty DHCP static response"}
+			}
+			return findFirstDHCPStaticObject(arr[0])
+		}
+		return data, nil
+	case []interface{}:
+		if len(data) == 0 {
+			return nil, &cliapp.ValidationError{Message: "empty DHCP static response"}
+		}
+		return findFirstDHCPStaticObject(data[0])
+	default:
+		return nil, &cliapp.ValidationError{Message: "unexpected DHCP static response"}
+	}
+}
+
+func hasRequiredDHCPStaticInputFields(body map[string]interface{}) bool {
+	for _, key := range dhcpStaticRequiredInputFields {
+		if _, ok := body[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+var dhcpStaticRequiredInputFields = []string{
+	"enabled",
+	"mac",
+	"ip_addr",
+	"interface",
+	"tagname",
+}
+
+var dhcpStaticInputFields = []string{
+	"enabled",
+	"mac",
+	"ip_addr",
+	"interface",
+	"gateway",
+	"dns1",
+	"dns2",
+	"comment",
+	"tagname",
+	"hostname",
+}
+
+func buildDHCPUpdateBody(app *cliapp.Runtime, cmd *cobra.Command, data string, fieldMap map[string]string, id string) (map[string]interface{}, error) {
+	updates, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+	if err != nil {
+		return nil, err
+	}
+
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/network/dhcp/services/"+id, nil)
+	if err != nil {
+		if hasRequiredDHCPServiceInputFields(updates) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	current, err := extractDHCPServiceInput(raw)
+	if err != nil {
+		if hasRequiredDHCPServiceInputFields(updates) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	for k, v := range dhcpCreateDefaults() {
+		if _, exists := current[k]; !exists {
+			current[k] = v
+		}
+	}
+	for k, v := range dhcpUpdateDefaults() {
+		if _, exists := current[k]; !exists {
+			current[k] = v
+		}
+	}
+	return current, nil
+}
+
+func extractDHCPServiceInput(raw json.RawMessage) (map[string]interface{}, error) {
+	current, err := extractDNSConfig(raw)
+	if err != nil {
+		return nil, err
+	}
+	body := make(map[string]interface{})
+	for _, key := range dhcpServiceInputFields {
+		v, ok := current[key]
+		if !ok || shouldOmitEmptyDHCPInput(key, v) {
+			continue
+		}
+		body[key] = v
+	}
+	return body, nil
+}
+
+func shouldOmitEmptyDHCPInput(key string, v interface{}) bool {
+	s, ok := v.(string)
+	if !ok || s != "" {
+		return false
+	}
+	switch key {
+	case "opt_type15", "opt_type28", "opt_type43", "opt_type60", "opt_type66", "opt_type67", "opt_type80", "opt_type119", "opt_type125", "opt_type128", "opt_type138", "opt_type121":
+		return true
+	default:
+		return false
+	}
+}
+
+func hasRequiredDHCPServiceInputFields(body map[string]interface{}) bool {
+	for _, key := range dhcpServiceRequiredInputFields {
+		if _, ok := body[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func dhcpCreateDefaults() map[string]interface{} {
+	return map[string]interface{}{
+		"enabled":          "yes",
+		"delay":            0,
+		"check_addr_valid": 0,
+		"check_relay_only": 0,
+	}
+}
+
+func dhcpUpdateDefaults() map[string]interface{} {
+	return map[string]interface{}{
+		"opt_type15":  0,
+		"opt_type28":  0,
+		"opt_type43":  0,
+		"opt_type60":  0,
+		"opt_type66":  0,
+		"opt_type67":  0,
+		"opt_type80":  0,
+		"opt_type119": 0,
+		"opt_type125": 0,
+		"opt_type128": 0,
+		"opt_type138": 0,
+		"opt_type121": 2,
+	}
+}
+
+var dhcpServiceRequiredInputFields = []string{
+	"enabled",
+	"tagname",
+	"interface",
+	"phy_ifnames",
+	"addr_pool",
+	"netmask",
+	"gateway",
+	"lease",
+	"delay",
+	"check_addr_valid",
+	"check_relay_only",
+}
+
+var dhcpServiceInputFields = []string{
+	"enabled",
+	"tagname",
+	"interface",
+	"phy_ifnames",
+	"addr_pool",
+	"exclude_pool",
+	"netmask",
+	"gateway",
+	"dns1",
+	"dns2",
+	"wins1",
+	"wins2",
+	"domain",
+	"next_server",
+	"lease",
+	"delay",
+	"opt_type15",
+	"opt15",
+	"opt_type28",
+	"opt28",
+	"opt_type43",
+	"opt43",
+	"opt_type60",
+	"opt60",
+	"opt_type66",
+	"opt66",
+	"opt_type67",
+	"opt67",
+	"opt_type80",
+	"opt80",
+	"opt_type119",
+	"opt119",
+	"opt_type125",
+	"opt125",
+	"opt_type128",
+	"opt128",
+	"opt_type138",
+	"opt138",
+	"opt_type121",
+	"opt121",
+	"check_addr_valid",
+	"check_relay_only",
+}
+
+func buildVLANUpdateBody(app *cliapp.Runtime, cmd *cobra.Command, data string, fieldMap map[string]string, id string) (map[string]interface{}, error) {
+	updates, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+	if err != nil {
+		return nil, err
+	}
+
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/network/vlan/"+id, nil)
+	if err != nil {
+		if hasRequiredVLANInputFields(updates) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	current, err := extractVLANInput(raw)
+	if err != nil {
+		if hasRequiredVLANInputFields(updates) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	for k, v := range vlanCreateDefaults() {
+		if _, exists := current[k]; !exists {
+			current[k] = v
+		}
+	}
+	if vlanName, ok := current["vlan_name"]; ok {
+		current["tagname"] = vlanName
+	}
+	return current, nil
+}
+
+func buildPPPoESetBody(app *cliapp.Runtime, cmd *cobra.Command, data string, fieldMap map[string]string) (map[string]interface{}, error) {
+	updates, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+	if err != nil {
+		return nil, err
+	}
+
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/network/pppoe/services", nil)
+	if err != nil {
+		if hasInputFields(updates, pppoeRequiredInputFields) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	current, err := extractInputObject(raw, pppoeInputFields)
+	if err != nil {
+		if hasInputFields(updates, pppoeRequiredInputFields) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	for k, v := range pppoeSetDefaults() {
+		if _, exists := current[k]; !exists {
+			current[k] = v
+		}
+	}
+	return current, nil
+}
+
+func pppoeSetDefaults() map[string]interface{} {
+	return map[string]interface{}{
+		"server_name":       "iKuai",
+		"force_verify_name": 0,
+		"nas_identifier":    "iKuai",
+		"nas_ip_address":    "",
+		"authport":          1812,
+		"accountport":       1813,
+		"rate_limit_lan":    1,
+		"drop_client":       1,
+		"force_pppoe":       0,
+		"enhance_check":     1,
+		"share_deny":        0,
+		"bind_vlan":         0,
+		"verify_vlan":       1,
+		"bind_iface":        0,
+		"mtu":               1480,
+		"mru":               1480,
+		"lcp_echo_interval": 10,
+		"lcp_echo_failure":  3,
+		"maxconnect":        0,
+		"restart_timer":     0,
+		"comment":           "",
+	}
+}
+
+var pppoeRequiredInputFields = []string{
+	"enabled",
+	"force_verify_name",
+	"server_ip",
+	"dns1",
+	"dns2",
+	"authmode",
+	"nas_identifier",
+	"nas_ip_address",
+	"radius_ip",
+	"secret",
+	"authport",
+	"accountport",
+	"addr_pool",
+	"interface",
+	"rate_limit_lan",
+	"drop_client",
+	"force_pppoe",
+	"enhance_check",
+	"share_deny",
+	"bind_vlan",
+	"verify_vlan",
+	"bind_iface",
+	"mtu",
+	"mru",
+	"lcp_echo_interval",
+	"lcp_echo_failure",
+	"maxconnect",
+	"restart_timer",
+	"comment",
+}
+
+var pppoeInputFields = []string{
+	"enabled",
+	"server_name",
+	"force_verify_name",
+	"server_ip",
+	"dns1",
+	"dns2",
+	"authmode",
+	"nas_identifier",
+	"nas_ip_address",
+	"radius_ip",
+	"secret",
+	"authport",
+	"accountport",
+	"addr_pool",
+	"interface",
+	"rate_limit_lan",
+	"drop_client",
+	"force_pppoe",
+	"enhance_check",
+	"share_deny",
+	"bind_vlan",
+	"verify_vlan",
+	"bind_iface",
+	"mtu",
+	"mru",
+	"lcp_echo_interval",
+	"lcp_echo_failure",
+	"maxconnect",
+	"restart_timer",
+	"restart_week",
+	"restart_time",
+	"comment",
+}
+
+func extractVLANInput(raw json.RawMessage) (map[string]interface{}, error) {
+	var payload interface{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	current, err := findFirstDHCPStaticObject(payload)
+	if err != nil {
+		return nil, err
+	}
+	body := make(map[string]interface{})
+	for _, key := range vlanInputFields {
+		if v, ok := current[key]; ok {
+			body[key] = v
+		}
+	}
+	return body, nil
+}
+
+func hasRequiredVLANInputFields(body map[string]interface{}) bool {
+	for _, key := range vlanRequiredInputFields {
+		if _, ok := body[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func vlanCreateDefaults() map[string]interface{} {
+	return map[string]interface{}{
+		"enabled": "yes",
+		"mac":     "",
+		"ip_mask": "",
+		"comment": "",
+	}
+}
+
+var vlanRequiredInputFields = []string{
+	"vlan_id",
+	"vlan_name",
+	"interface",
+	"ip_addr",
+	"netmask",
+	"enabled",
+	"mac",
+	"ip_mask",
+	"comment",
+}
+
+var vlanInputFields = []string{
+	"vlan_id",
+	"vlan_name",
+	"tagname",
+	"interface",
+	"mac",
+	"ip_addr",
+	"netmask",
+	"ip_mask",
+	"enabled",
+	"comment",
+}
+
 type natGroupOpts struct {
-	createDefaults map[string]interface{}
-	addrFields     map[string]string
-	defaultColumns []string
+	createDefaults      map[string]interface{}
+	addrFields          map[string]string
+	defaultColumns      []string
+	requiredCreateFlags []string
+	inputFields         []string
 }
 
 func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[string]string, opts ...natGroupOpts) *cobra.Command {
@@ -1252,12 +1997,14 @@ func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[stri
 	}
 	cliapp.AddListFlags(listCmd)
 
-	createCmd := natWriteCmd(app, "create", "Create a "+use+" rule", false, apiPath, fieldMap, o.createDefaults, o.addrFields,
+	createCmd := natWriteCmd(app, "create", "Create a "+use+" rule", false, apiPath, fieldMap, o.createDefaults, o.addrFields, nil,
+		o.requiredCreateFlags,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 		})
 
-	updateCmd := natWriteCmd(app, "update ID", "Update a "+use+" rule", true, apiPath, fieldMap, nil, o.addrFields,
+	updateCmd := natWriteCmd(app, "update ID", "Update a "+use+" rule", true, apiPath, fieldMap, o.createDefaults, o.addrFields, o.inputFields,
+		nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
 		})
@@ -1299,7 +2046,7 @@ func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[stri
 
 // natWriteCmd builds a create or update command for natGroup.
 // Supports fieldMap (semantic flags), createDefaults, and addrFields (nested objects).
-func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath string, fieldMap map[string]string, defaults map[string]interface{}, addrFields map[string]string, fn func(body interface{}, id string) (json.RawMessage, error)) *cobra.Command {
+func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath string, fieldMap map[string]string, defaults map[string]interface{}, addrFields map[string]string, inputFields []string, requiredCreateFlags []string, fn func(body interface{}, id string) (json.RawMessage, error)) *cobra.Command {
 	c := &cobra.Command{Use: use, Short: short}
 	if use == "create" {
 		c.Aliases = []string{"new"}
@@ -1335,14 +2082,21 @@ func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath st
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			if !withID && len(requiredCreateFlags) > 0 {
+				if err := cliapp.RequireFlags(cmd, requiredCreateFlags...); err != nil {
+					return err
+				}
+			}
 			data, _ := cmd.Flags().GetString("data")
 			body, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
 			if err != nil {
 				return err
 			}
-			for k, v := range defaults {
-				if _, exists := body[k]; !exists {
-					body[k] = v
+			if !withID {
+				for k, v := range defaults {
+					if _, exists := body[k]; !exists {
+						body[k] = v
+					}
 				}
 			}
 			for flagName, apiField := range addrFields {
@@ -1366,6 +2120,10 @@ func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath st
 			id := ""
 			if withID {
 				id = args[0]
+				body, err = buildNATUpdateBody(app, apiPath, id, body, defaults, inputFields)
+				if err != nil {
+					return err
+				}
 			}
 			raw, err := fn(body, id)
 			if err != nil {
@@ -1396,7 +2154,95 @@ func natWriteCmd(app *cliapp.Runtime, use, short string, withID bool, apiPath st
 			return nil
 		}
 	}
+	if !withID && len(requiredCreateFlags) > 0 {
+		cliapp.MarkFlagsRequired(c, requiredCreateFlags...)
+	}
 	return c
+}
+
+func buildNATUpdateBody(app *cliapp.Runtime, apiPath, id string, updates map[string]interface{}, defaults map[string]interface{}, inputFields []string) (map[string]interface{}, error) {
+	if len(inputFields) == 0 {
+		return updates, nil
+	}
+
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/"+apiPath+"/"+id, nil)
+	if err != nil {
+		if hasInputFields(updates, inputFields) {
+			return updates, nil
+		}
+		return nil, err
+	}
+
+	current, err := extractInputObject(raw, inputFields)
+	if err != nil {
+		if hasInputFields(updates, inputFields) {
+			return updates, nil
+		}
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	for k, v := range defaults {
+		if _, exists := current[k]; !exists {
+			current[k] = v
+		}
+	}
+	return current, nil
+}
+
+func extractInputObject(raw json.RawMessage, inputFields []string) (map[string]interface{}, error) {
+	var payload interface{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	current, err := findFirstAPIObject(payload)
+	if err != nil {
+		return nil, err
+	}
+	body := make(map[string]interface{})
+	for _, key := range inputFields {
+		if v, ok := current[key]; ok {
+			body[key] = v
+		}
+	}
+	return body, nil
+}
+
+func findFirstAPIObject(v interface{}) (map[string]interface{}, error) {
+	switch data := v.(type) {
+	case map[string]interface{}:
+		if results, ok := data["results"]; ok {
+			return findFirstAPIObject(results)
+		}
+		if arr, ok := data["data"].([]interface{}); ok {
+			if len(arr) == 0 {
+				return nil, &cliapp.ValidationError{Message: "empty API response"}
+			}
+			return findFirstAPIObject(arr[0])
+		}
+		return data, nil
+	case []interface{}:
+		if len(data) == 0 {
+			return nil, &cliapp.ValidationError{Message: "empty API response"}
+		}
+		return findFirstAPIObject(data[0])
+	default:
+		return nil, &cliapp.ValidationError{Message: "unexpected API response"}
+	}
+}
+
+func hasInputFields(body map[string]interface{}, inputFields []string) bool {
+	for _, key := range inputFields {
+		if _, ok := body[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func newDeleteCmd(app *cliapp.Runtime, short, apiPath string) *cobra.Command {
