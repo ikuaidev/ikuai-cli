@@ -104,5 +104,4 @@ ikuai-cli network dmz delete <ID> --yes --format json
 ```bash
 ikuai-cli network pppoe get --format json
 ikuai-cli network pppoe set --comment "maintenance" --mtu 1480 --mru 1480 --lcp-echo-interval 10 --lcp-echo-failure 3 --maxconnect 0 --format json
-# set 会先读取当前配置并回填完整 PUT body；优先使用语义化 flags。--data 仅作为复杂字段 escape hatch。
 ```
