@@ -7,6 +7,8 @@ description: Monitor iKuai router — system status, CPU, memory, disk, temperat
 
 ## Commands
 
+All examples use `--format json` because this skill is primarily for agents and scripts. Use table output only for human inspection.
+
 ### System Overview
 ```bash
 ikuai-cli monitor system --format json       # Uptime, load, firmware version, WAN IP
@@ -36,6 +38,8 @@ ikuai-cli monitor interfaces-traffic-v6 --format json # IPv6 traffic
 ikuai-cli monitor flow-shunting --format json        # Traffic shunting data
 ikuai-cli monitor switch --format json               # Switch port monitoring
 ```
+
+`downstream`, `cameras`, and `switch` are data-dependent list commands. Treat an empty `data: []` / `total: 0` response as environment-blocked, not PASS.
 
 ### Clients
 ```bash
@@ -97,3 +101,14 @@ ikuai-cli monitor client-app-protocols --format json --ip 192.168.1.100 --mac 08
 ikuai-cli monitor app-traffic-summary --format json
 ikuai-cli monitor app-protocols-terminals --format json --appid 2580003
 ```
+
+### Regression Data Discovery
+```bash
+# Discover a real online client before per-client commands
+ikuai-cli monitor clients-online --format json --page 1 --page-size 20
+
+# Discover a real appid before app protocol detail commands
+ikuai-cli monitor app-traffic-summary --format json --page 1 --page-size 20
+```
+
+For regression, per-client commands must use a real `ip_addr` and `mac` returned by `clients-online`. App protocol detail commands must use a real `appid` returned by `app-traffic-summary`.
