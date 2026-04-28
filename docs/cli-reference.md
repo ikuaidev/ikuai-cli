@@ -127,11 +127,15 @@ ikuai-cli system web-passwd reset --ssh-user root --yes
 
 ```bash
 ikuai-cli security acl list
-ikuai-cli security acl create --name "BlockSSH" --action drop --protocol tcp --direction in --priority 100
+ikuai-cli security acl create --name "BlockSSH" --action drop --protocol tcp --direction forward --dst-port 22 --priority 30 --enabled no
 ikuai-cli security mac get-mode
-ikuai-cli security url list
+ikuai-cli security mac set-mode --acl-mac 0
+ikuai-cli security url black list
+ikuai-cli security url keywords create --name "KW1" --mode exact --src-url "example.com" --ori-keyword "bad" --rep-keyword "good" --hit-rate 1 --priority 10 --enabled no
 ikuai-cli security domain-blacklist list
 ikuai-cli security l7 list
+ikuai-cli security advanced-get
+ikuai-cli security secondary-route-get
 ```
 
 ## VPN

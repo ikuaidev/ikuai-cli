@@ -228,6 +228,9 @@ var (
 		"domain":   "domain",
 		"src-addr": "src_addr",
 	}
+	urlStringModeFlags = map[string]string{
+		"mode": "Match mode (exact/vague)",
+	}
 
 	domainBlacklistCreateDefaults = map[string]interface{}{
 		"enabled": "yes",
@@ -262,8 +265,12 @@ var (
 
 	// secondary-route-set fields
 	secondaryRouteFieldMap = map[string]string{
-		"nol2rt":  "nol2rt",
-		"ttl-num": "ttl_num",
+		"nol2rt":    "nol2rt",
+		"nol2rt-ip": "nol2rt_ip",
+		"ttl-num":   "ttl_num",
+	}
+	secondaryRouteAddrFields = map[string]string{
+		"nol2rt-ip": "nol2rt_ip",
 	}
 )
 
@@ -273,9 +280,11 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		Short: "Security rules",
 		Long:  `Manage security rules: ACL, MAC filtering, L7 application rules, URL filtering, domain blacklist, connection limits, and terminals.`,
 		Example: `  ikuai-cli security acl list
-  ikuai-cli security acl create --name "block_ssh" --action drop --protocol tcp --dst-port "22" --enabled yes
-  ikuai-cli security mac list
-  ikuai-cli security l7 list`,
+  ikuai-cli security acl create --name "block_ssh" --action drop --protocol tcp --dst-port "22" --priority 30 --enabled no
+  ikuai-cli security mac get-mode
+  ikuai-cli security mac set-mode --acl-mac 0
+  ikuai-cli security l7 create --name "block_app" --action drop --app-proto "抖音短视频" --priority 30 --enabled no
+  ikuai-cli security url keywords create --name "kw1" --mode exact --src-url "example.com" --ori-keyword "bad" --rep-keyword "good" --hit-rate 1 --priority 10 --enabled no`,
 	}
 
 	securityCmd.AddCommand(secGroup(app, "acl", "IP ACL rules", "security/acl-rules", true, aclFieldMap, secGroupOpts{
@@ -302,62 +311,67 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return nil
 			},
 		},
-		dataCmdWithFlags(app, "set-mode", "Set MAC filter mode", func(c *cobra.Command) {
-			c.Flags().String("acl-mac", "", "MAC mode (0=blacklist, 1=whitelist)")
-		}, macModeFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Put(cliapp.APIBase+"/security/mac-mode", body)
-		}),
+		macSetModeCmd(app),
 	)
-	addSecCRUD(app, macCmd, "security/mac-rules", false, macFieldMap, macCreateDefaults, nil, nil, []string{"name", "mac"})
+	addSecCRUD(app, macCmd, "security/mac-rules", true, macFieldMap, macCreateDefaults, []string{"id", "tagname", "mac", "enabled"}, nil, []string{"name", "mac"}, false, nil)
 	securityCmd.AddCommand(macCmd)
 
 	securityCmd.AddCommand(secGroup(app, "l7", "L7 application-layer rules", "security/app-protocols/professional/rules", true, l7FieldMap, secGroupOpts{
 		createDefaults:      l7CreateDefaults,
+		defaultColumns:      []string{"id", "tagname", "action", "app_proto", "prio", "enabled"},
 		addrFields:          l7AddrFields,
-		requiredCreateFlags: []string{"name", "action", "priority"},
+		requiredCreateFlags: []string{"name", "action", "priority", "app-proto"},
 	}))
 
 	urlCmd := &cobra.Command{Use: "url", Short: "URL filter rules"}
 	urlCmd.AddCommand(
-		secGroup(app, "black", "URL blacklist rules", "security/url-black/rules", false, urlBlackFieldMap, secGroupOpts{
+		secGroup(app, "black", "URL blacklist rules", "security/url-black/rules", true, urlBlackFieldMap, secGroupOpts{
 			createDefaults:      urlBlackCreateDefaults,
+			defaultColumns:      []string{"id", "tagname", "mode", "domain", "enabled"},
 			addrFields:          urlBlackAddrFields,
-			requiredCreateFlags: []string{"name", "mode"},
+			requiredCreateFlags: []string{"name", "mode", "domain"},
 		}),
-		secGroup(app, "keywords", "URL keyword rules", "security/url-keywords/rules", false, urlKeywordsFieldMap, secGroupOpts{
+		secGroup(app, "keywords", "URL keyword rules", "security/url-keywords/rules", true, urlKeywordsFieldMap, secGroupOpts{
 			createDefaults:      urlKeywordsCreateDefaults,
 			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "ori_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
 			requiredCreateFlags: []string{"name", "mode", "src-url", "ori-keyword", "rep-keyword", "hit-rate", "priority"},
+			flagDescs:           urlStringModeFlags,
 		}),
-		secGroup(app, "redirect", "URL redirect rules", "security/url-redirect/rules", false, urlRedirectFieldMap, secGroupOpts{
+		secGroup(app, "redirect", "URL redirect rules", "security/url-redirect/rules", true, urlRedirectFieldMap, secGroupOpts{
 			createDefaults:      urlRedirectCreateDefaults,
 			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "dst_url", "hit_rate", "prio", "enabled"},
 			requiredCreateFlags: []string{"name", "mode", "src-url", "dst-url", "hit-rate", "priority"},
+			flagDescs:           urlStringModeFlags,
 		}),
-		secGroup(app, "replace", "URL replace rules", "security/url-replace/rules", false, urlReplaceFieldMap, secGroupOpts{
+		secGroup(app, "replace", "URL replace rules", "security/url-replace/rules", true, urlReplaceFieldMap, secGroupOpts{
 			createDefaults:      urlReplaceCreateDefaults,
 			defaultColumns:      []string{"id", "tagname", "mode", "src_url", "param_keyword", "rep_keyword", "hit_rate", "prio", "enabled"},
 			requiredCreateFlags: []string{"name", "mode", "src-url", "param-keyword", "rep-keyword", "hit-rate", "priority"},
+			flagDescs:           urlStringModeFlags,
 		}),
 	)
 	securityCmd.AddCommand(urlCmd)
 
-	securityCmd.AddCommand(secGroup(app, "domain-blacklist", "Domain blacklist rules", "security/domain-blacklist/rules", false, domainBlacklistFieldMap, secGroupOpts{
+	securityCmd.AddCommand(secGroup(app, "domain-blacklist", "Domain blacklist rules", "security/domain-blacklist/rules", true, domainBlacklistFieldMap, secGroupOpts{
 		createDefaults:      domainBlacklistCreateDefaults,
+		defaultColumns:      []string{"id", "tagname", "domain_group", "enabled"},
 		requiredCreateFlags: []string{"name", "domain-group"},
 	}))
-	securityCmd.AddCommand(secGroup(app, "peerconn", "Peer connection rules", "security/peerconn/rules", false, peerconnFieldMap, secGroupOpts{
+	securityCmd.AddCommand(secGroup(app, "peerconn", "Peer connection rules", "security/peerconn/rules", true, peerconnFieldMap, secGroupOpts{
 		createDefaults:      peerconnCreateDefaults,
+		defaultColumns:      []string{"id", "tagname", "protocol", "limits", "dst_port", "enabled"},
 		addrFields:          peerconnAddrFields,
 		requiredCreateFlags: []string{"name", "limits", "protocol"},
 	}))
-	securityCmd.AddCommand(secGroup(app, "terminals", "Terminal device annotations", "security/terminals", false, terminalsFieldMap))
+	securityCmd.AddCommand(secGroup(app, "terminals", "Terminal device annotations", "security/terminals", true, terminalsFieldMap, secGroupOpts{
+		defaultColumns:      []string{"id", "tagname", "mac", "comment"},
+		requiredCreateFlags: []string{"name", "mac"},
+		disableToggle:       true,
+	}))
 
 	securityCmd.AddCommand(
-		dataCmd(app, "advanced-get", "Get advanced security config", func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Get(cliapp.APIBase+"/security/advanced/config", nil)
-		}),
-		dataCmdWithFlags(app, "advanced-set", "Set advanced security config", func(c *cobra.Command) {
+		configGetCmd(app, "advanced-get", "Get advanced security config", "/security/advanced/config", []string{"id", "noping_lan", "noping_wan", "notracert", "invalid", "dos_lan", "dos_lan_num", "tcp_mss", "tcp_mss_num"}),
+		configSetCmd(app, "advanced-set", "Set advanced security config", "/security/advanced/config", func(c *cobra.Command) {
 			c.Flags().String("noping-lan", "", "Block LAN ping (0/1)")
 			c.Flags().String("noping-wan", "", "Block WAN ping (0/1)")
 			c.Flags().String("notracert", "", "Block tracert (0/1)")
@@ -367,22 +381,25 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			c.Flags().String("dos-lan-num", "", "LAN DoS connection limit")
 			c.Flags().String("tcp-mss", "", "Enable TCP MSS (0/1)")
 			c.Flags().String("tcp-mss-num", "", "TCP MSS max segment size")
-		}, advancedFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Put(cliapp.APIBase+"/security/advanced/config", body)
-		}),
-		dataCmd(app, "secondary-route-get", "Get secondary (L2) route config", func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Get(cliapp.APIBase+"/security/secondary-route/config", nil)
-		}),
-		dataCmdWithFlags(app, "secondary-route-set", "Set secondary (L2) route config", func(c *cobra.Command) {
+		}, advancedFieldMap, nil),
+		configGetCmd(app, "secondary-route-get", "Get secondary (L2) route config", "/security/secondary-route/config", []string{"id", "nol2rt", "nol2rt_ip", "ttl_num", "time"}),
+		configSetCmd(app, "secondary-route-set", "Set secondary (L2) route config", "/security/secondary-route/config", func(c *cobra.Command) {
 			c.Flags().String("nol2rt", "", "Block secondary routers (0=allow, 1=block)")
 			c.Flags().String("nol2rt-ip", "", "IP addresses (comma-separated)")
 			c.Flags().String("ttl-num", "", "Custom TTL value (1-255)")
-		}, secondaryRouteFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Put(cliapp.APIBase+"/security/secondary-route/config", body)
-		}),
+		}, secondaryRouteFieldMap, secondaryRouteAddrFields),
 	)
 
 	return securityCmd
+}
+
+func configGetCmd(app *cliapp.Runtime, use, short, apiPath string, defaultColumns []string) *cobra.Command {
+	return dataCmd(app, use, short, func(body interface{}, id string) (json.RawMessage, error) {
+		if len(defaultColumns) > 0 {
+			app.DefaultColumns = defaultColumns
+		}
+		return app.APIClient.Get(cliapp.APIBase+apiPath, nil)
+	})
 }
 
 type secGroupOpts struct {
@@ -390,6 +407,8 @@ type secGroupOpts struct {
 	defaultColumns      []string
 	addrFields          map[string]string // CLI flag → API field for address/port nested objects.
 	requiredCreateFlags []string
+	disableToggle       bool
+	flagDescs           map[string]string
 }
 
 func secGroup(app *cliapp.Runtime, use, short, apiPath string, withGet bool, fieldMap map[string]string, opts ...secGroupOpts) *cobra.Command {
@@ -398,11 +417,11 @@ func secGroup(app *cliapp.Runtime, use, short, apiPath string, withGet bool, fie
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	addSecCRUD(app, grp, apiPath, withGet, fieldMap, o.createDefaults, o.defaultColumns, o.addrFields, o.requiredCreateFlags)
+	addSecCRUD(app, grp, apiPath, withGet, fieldMap, o.createDefaults, o.defaultColumns, o.addrFields, o.requiredCreateFlags, o.disableToggle, o.flagDescs)
 	return grp
 }
 
-func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet bool, fieldMap map[string]string, createDefaults map[string]interface{}, defaultColumns []string, addrFields map[string]string, requiredCreateFlags []string) {
+func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet bool, fieldMap map[string]string, createDefaults map[string]interface{}, defaultColumns []string, addrFields map[string]string, requiredCreateFlags []string, disableToggle bool, customFlagDescs map[string]string) {
 	name := grp.Use
 	listCmd := &cobra.Command{
 		Use:     "list",
@@ -429,7 +448,7 @@ func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet
 
 	createCmd := secWriteCmd(app, "create", "Create a "+name+" rule", false, fieldMap, createDefaults, addrFields, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
-	})
+	}, "", customFlagDescs)
 	if len(requiredCreateFlags) > 0 {
 		cliapp.MarkFlagsRequired(createCmd, requiredCreateFlags...)
 		origRunE := createCmd.RunE
@@ -442,20 +461,22 @@ func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet
 	}
 	updateCmd := secWriteCmd(app, "update ID", "Update a "+name+" rule", true, fieldMap, nil, addrFields, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
-	})
+	}, cliapp.APIBase+"/"+apiPath+"/", customFlagDescs)
 
 	grp.AddCommand(
 		listCmd,
 		createCmd,
 		updateCmd,
-		dataCmdWithID(app, "toggle ID", "Enable/disable a "+name+" rule (--data JSON)", func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Patch(cliapp.APIBase+"/"+apiPath+"/"+id, body)
-		}),
 		deleteByIDCmd(app, "delete ID", "Delete a "+name+" rule", "/"+apiPath+"/"),
 	)
+	if !disableToggle {
+		grp.AddCommand(dataCmdWithID(app, "toggle ID", "Enable/disable a "+name+" rule", func(body interface{}, id string) (json.RawMessage, error) {
+			return app.APIClient.Patch(cliapp.APIBase+"/"+apiPath+"/"+id, body)
+		}))
+	}
 
 	if withGet {
-		grp.AddCommand(getByIDCmd(app, "get ID", "Get a single "+name+" rule", "/"+apiPath+"/"))
+		grp.AddCommand(getByIDCmd(app, "get ID", "Get a single "+name+" rule", "/"+apiPath+"/", defaultColumns))
 	}
 }
 
@@ -464,7 +485,7 @@ func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet
 // it falls back to the plain --data / ParseJSON path.
 // addrFields maps CLI flag names to API field names for address/port nested objects;
 // these flags accept comma-separated values and build {"custom": [...], "object": []} structures.
-func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[string]string, defaults map[string]interface{}, addrFields map[string]string, fn callWithBody) *cobra.Command {
+func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[string]string, defaults map[string]interface{}, addrFields map[string]string, fn callWithBody, baseGetPath string, customFlagDescs map[string]string) *cobra.Command {
 	c := &cobra.Command{Use: use, Short: short}
 	if use == "create" {
 		c.Aliases = []string{"new"}
@@ -484,7 +505,7 @@ func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap m
 	}
 
 	if fieldMap != nil {
-		addSemanticFlags(c, fieldMap)
+		addSemanticFlags(c, fieldMap, customFlagDescs)
 		cliapp.AddEnabledFlag(c)
 
 		c.RunE = func(cmd *cobra.Command, args []string) error {
@@ -496,31 +517,23 @@ func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap m
 			if err != nil {
 				return err
 			}
+			if withID && baseGetPath != "" {
+				full, err := fullBodyFromGet(app, baseGetPath+args[0])
+				if err != nil {
+					return err
+				}
+				for k, v := range body {
+					full[k] = v
+				}
+				body = full
+			}
 			// Apply defaults: only fill keys not already set by --data or flags.
 			for k, v := range defaults {
 				if _, exists := body[k]; !exists {
 					body[k] = v
 				}
 			}
-			// Parse address/port flags into nested objects.
-			for flagName, apiField := range addrFields {
-				f := cmd.Flags().Lookup(flagName)
-				if f == nil || !f.Changed {
-					continue
-				}
-				parts := strings.Split(f.Value.String(), ",")
-				custom := make([]interface{}, 0, len(parts))
-				for _, v := range parts {
-					v = strings.TrimSpace(v)
-					if v != "" {
-						custom = append(custom, v)
-					}
-				}
-				body[apiField] = map[string]interface{}{
-					"custom": custom,
-					"object": []interface{}{},
-				}
-			}
+			applyAddrFields(body, cmd, addrFields)
 			id := ""
 			if withID {
 				id = args[0]
@@ -557,14 +570,141 @@ func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap m
 	return c
 }
 
+func fullBodyFromGet(app *cliapp.Runtime, path string) (map[string]interface{}, error) {
+	dryRun := app.APIClient.DryRun
+	app.APIClient.DryRun = false
+	defer func() { app.APIClient.DryRun = dryRun }()
+	raw, err := app.APIClient.Get(path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var body map[string]interface{}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil, err
+	}
+	if rows, ok := body["data"].([]interface{}); ok && len(rows) > 0 {
+		if row, ok := rows[0].(map[string]interface{}); ok {
+			body = row
+		}
+	}
+	delete(body, "id")
+	normalizeSecurityBody(body)
+	return body, nil
+}
+
+func normalizeSecurityBody(v interface{}) {
+	switch x := v.(type) {
+	case map[string]interface{}:
+		for k, child := range x {
+			if (k == "custom" || k == "object") && emptyMap(child) {
+				x[k] = []interface{}{}
+				continue
+			}
+			normalizeSecurityBody(child)
+		}
+	case []interface{}:
+		for _, child := range x {
+			normalizeSecurityBody(child)
+		}
+	}
+}
+
+func emptyMap(v interface{}) bool {
+	m, ok := v.(map[string]interface{})
+	return ok && len(m) == 0
+}
+
+func configSetCmd(app *cliapp.Runtime, use, short, apiPath string, addFlags func(*cobra.Command), fieldMap map[string]string, addrFields map[string]string) *cobra.Command {
+	c := &cobra.Command{Use: use, Short: short}
+	if addFlags != nil {
+		addFlags(c)
+	}
+	for flagName := range addrFields {
+		if c.Flags().Lookup(flagName) == nil {
+			desc := flagDescs[flagName]
+			if desc == "" {
+				desc = "Comma-separated " + flagName + " values"
+			}
+			c.Flags().String(flagName, "", desc)
+		}
+	}
+	c.Flags().String("data", "{}", "JSON body")
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := app.RequireAuth(); err != nil {
+			return err
+		}
+		data, _ := cmd.Flags().GetString("data")
+		changes, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+		if err != nil {
+			return err
+		}
+		full, err := fullBodyFromGet(app, cliapp.APIBase+apiPath)
+		if err != nil {
+			return err
+		}
+		for k, v := range changes {
+			full[k] = v
+		}
+		applyAddrFields(full, cmd, addrFields)
+		raw, err := app.APIClient.Put(cliapp.APIBase+apiPath, full)
+		if err != nil {
+			return err
+		}
+		app.PrintRaw(raw)
+		return nil
+	}
+	return c
+}
+
+func macSetModeCmd(app *cliapp.Runtime) *cobra.Command {
+	c := dataCmdWithFlags(app, "set-mode", "Set MAC filter mode", func(c *cobra.Command) {
+		c.Flags().String("acl-mac", "", "MAC mode (0=blacklist, 1=whitelist)")
+	}, macModeFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
+		return app.APIClient.Put(cliapp.APIBase+"/security/mac-mode", body)
+	})
+	cliapp.MarkFlagsRequired(c, "acl-mac")
+	origRunE := c.RunE
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := cliapp.RequireFlags(cmd, "acl-mac"); err != nil {
+			return err
+		}
+		return origRunE(cmd, args)
+	}
+	return c
+}
+
+func applyAddrFields(body map[string]interface{}, cmd *cobra.Command, addrFields map[string]string) {
+	for flagName, apiField := range addrFields {
+		f := cmd.Flags().Lookup(flagName)
+		if f == nil || !f.Changed {
+			continue
+		}
+		parts := strings.Split(f.Value.String(), ",")
+		custom := make([]interface{}, 0, len(parts))
+		for _, v := range parts {
+			v = strings.TrimSpace(v)
+			if v != "" {
+				custom = append(custom, v)
+			}
+		}
+		body[apiField] = map[string]interface{}{
+			"custom": custom,
+			"object": []interface{}{},
+		}
+	}
+}
+
 // addSemanticFlags registers a --<flag> string flag for every key in fieldMap,
 // skipping "enabled" (handled by AddEnabledFlag).
-func addSemanticFlags(cmd *cobra.Command, fieldMap map[string]string) {
+func addSemanticFlags(cmd *cobra.Command, fieldMap map[string]string, customFlagDescs map[string]string) {
 	for flagName, apiField := range fieldMap {
 		if flagName == "enabled" {
 			continue
 		}
 		desc := flagDescs[flagName]
+		if customDesc := customFlagDescs[flagName]; customDesc != "" {
+			desc = customDesc
+		}
 		if desc == "" {
 			desc = "Set " + apiField + " field"
 		}
@@ -572,7 +712,7 @@ func addSemanticFlags(cmd *cobra.Command, fieldMap map[string]string) {
 	}
 }
 
-func getByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
+func getByIDCmd(app *cliapp.Runtime, use, short, apiPath string, defaultColumns []string) *cobra.Command {
 	return &cobra.Command{
 		Use:   use,
 		Short: short,
@@ -580,6 +720,9 @@ func getByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
 				return err
+			}
+			if len(defaultColumns) > 0 {
+				app.DefaultColumns = defaultColumns
 			}
 			raw, err := app.APIClient.Get(cliapp.APIBase+apiPath+args[0], nil)
 			if err != nil {
