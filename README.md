@@ -105,7 +105,7 @@ ikuai-cli log system list --human-time       # System logs
 ## Features
 
 - **Network** — DNS, DHCP, VLAN, NAT, PPPoE, interfaces
-- **Monitor** — CPU, memory, uptime, traffic, online users
+- **Monitor** — CPU, memory, uptime, traffic, online clients
 - **Security** — ACL, MAC filtering, L7 rules, URL filtering, domain blacklist, peerconn, terminals
 - **Users** — account management, auth-server, bandwidth limits
 - **Routing** — static routes, policy routing, multi-WAN

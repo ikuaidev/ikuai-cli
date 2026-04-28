@@ -9,9 +9,6 @@ description: iKuai security rules — ACL, MAC filtering, L7 app rules, URL filt
 
 - 优先使用 `--format json`，便于解析 `rowid`、`data`、`total`。
 - 删除命令使用 `--yes --format json`。
-- 创建/删除类闭环建议：`create -> list/get 确认存在 -> delete -> list/get 确认消失`。
-- 高风险全局配置建议：`get baseline -> --dry-run -> set -> get verify -> restore -> get verify`。
-- `--data` 仅作为 escape hatch；常规操作优先使用语义化 flags。
 
 ## ACL（访问控制）
 
@@ -136,4 +133,4 @@ ikuai-cli security secondary-route-set --ttl-num 21 --format json
 ikuai-cli security secondary-route-set --ttl-num 20 --format json
 ```
 
-`advanced-set` 和 `secondary-route-set` 会先读取当前配置，再用 flags 覆盖指定字段并提交完整 PUT body。回归或自动化执行时必须恢复 baseline。
+`advanced-set` 和 `secondary-route-set` 支持使用 flags 覆盖指定字段。

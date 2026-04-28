@@ -59,14 +59,39 @@ ikuai-cli monitor cpu                        # CPU load (default: last hour, avg
 ikuai-cli monitor cpu --time-range day --aggregate max
 ikuai-cli monitor memory                     # Memory usage history
 ikuai-cli monitor disk                       # Disk usage history
+ikuai-cli monitor temp                       # CPU temperature history
+ikuai-cli monitor terminals                  # Terminal count history
+ikuai-cli monitor connections                # Connection count history
+ikuai-cli monitor network-load               # Network load history
+ikuai-cli monitor downstream                 # Downstream device traffic
+ikuai-cli monitor interfaces                 # WAN interface status
 ikuai-cli monitor interfaces-traffic         # Per-interface traffic
+ikuai-cli monitor interfaces-config          # Interface config snapshot
+ikuai-cli monitor interfaces-physical        # Physical NIC info
+ikuai-cli monitor interfaces-traffic-v6      # IPv6 interface traffic
 ikuai-cli monitor clients-online             # Online IPv4 clients
+ikuai-cli monitor clients-offline            # Offline IPv4 clients
+ikuai-cli monitor clients-ip6-online         # Online IPv6 clients
+ikuai-cli monitor clients-ip6-offline        # Offline IPv6 clients
+ikuai-cli monitor traffic-summary            # Per-client traffic summary
+ikuai-cli monitor traffic-load --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
 ikuai-cli monitor client-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
 ikuai-cli monitor client-protocols-history --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
 ikuai-cli monitor client-app-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor traffic-load --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
+ikuai-cli monitor protocols                  # Protocol distribution
+ikuai-cli monitor protocols-history          # Protocol history
+ikuai-cli monitor app-traffic-summary        # App traffic summary
+ikuai-cli monitor app-protocols-load         # Current app protocol load
 ikuai-cli monitor app-protocols-history --appids 2580003,2580004
 ikuai-cli monitor app-protocols-terminals --appid 2580003
+ikuai-cli monitor wireless-stats             # Wireless statistics
+ikuai-cli monitor wireless-score             # Wireless quality score
+ikuai-cli monitor wireless-traffic           # Wireless traffic
+ikuai-cli monitor ssid-clients               # SSID client distribution
+ikuai-cli monitor channel-clients            # Channel client distribution
+ikuai-cli monitor cameras                    # IP camera list
+ikuai-cli monitor flow-shunting              # Traffic shunting stats
+ikuai-cli monitor switch                     # Switch port monitoring
 ```
 
 ## Network

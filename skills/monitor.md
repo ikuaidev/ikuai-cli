@@ -7,6 +7,8 @@ description: Monitor iKuai router — system status, CPU, memory, disk, temperat
 
 ## Commands
 
+All examples use `--format json` because this skill is primarily for agents and scripts. Use table output only for human inspection.
+
 ### System Overview
 ```bash
 ikuai-cli monitor system --format json       # Uptime, load, firmware version, WAN IP
