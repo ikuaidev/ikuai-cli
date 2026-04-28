@@ -511,6 +511,24 @@ func TestPrintTableMapOfMaps(t *testing.T) {
 	}
 }
 
+func TestPrintTableMapOfMapsUsesConfiguredColumns(t *testing.T) {
+	var out bytes.Buffer
+	p := New(&out, &out, Table)
+	p.Columns = []string{"name", "interface", "link"}
+	p.Print(json.RawMessage(`{"ether_info":{"eth0":{"interface":"lan1","link":1,"driver":"e1000e"},"eth1":{"interface":"wan1","link":0,"driver":"igb"}}}`))
+
+	got := out.String()
+	if !strings.Contains(got, "NAME") || !strings.Contains(got, "INTERFACE") || !strings.Contains(got, "LINK") {
+		t.Fatalf("missing configured headers: %q", got)
+	}
+	if strings.Contains(got, "DRIVER") || strings.Contains(got, "e1000e") {
+		t.Fatalf("map-of-maps should respect configured columns: %q", got)
+	}
+	if !strings.Contains(got, "eth0") || !strings.Contains(got, "lan1") {
+		t.Fatalf("missing configured row values: %q", got)
+	}
+}
+
 func TestPrintTableMapOfMapsOnlyWhenAllInnerNonEmpty(t *testing.T) {
 	var out bytes.Buffer
 	p := New(&out, &out, Table)

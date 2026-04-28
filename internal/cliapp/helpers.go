@@ -71,6 +71,12 @@ var integerAPIFields = map[string]bool{
 	"upload": true, "download": true,
 	"ftp_ports": true, "sip_ports": true, "tftp_ports": true,
 	"limits": true, "hit_rate": true,
+	"authmode": true, "authport": true, "accountport": true,
+	"force_verify_name": true, "rate_limit_lan": true, "drop_client": true,
+	"force_pppoe": true, "enhance_check": true, "share_deny": true,
+	"bind_vlan": true, "verify_vlan": true, "bind_iface": true,
+	"mtu": true, "mru": true, "lcp_echo_interval": true,
+	"lcp_echo_failure": true, "maxconnect": true, "restart_timer": true,
 }
 
 // MergeDataWithFlags parses --data JSON, then overlays any explicitly set
