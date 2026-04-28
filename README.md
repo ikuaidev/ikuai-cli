@@ -96,7 +96,7 @@ ikuai-cli network dns get                    # DNS config
 ikuai-cli network dns proxy create --domain example.com --dns-addr 8.8.8.8 --parse-type ipv4
 ikuai-cli network pppoe set --comment maintenance --mtu 1480 --mru 1480
 ikuai-cli users online                       # Online users
-ikuai-cli security acl list                  # Firewall rules
+ikuai-cli security acl list                  # Security rules
 ikuai-cli log system list --human-time       # System logs
 ```
 
@@ -106,7 +106,7 @@ ikuai-cli log system list --human-time       # System logs
 
 - **Network** — DNS, DHCP, VLAN, NAT, PPPoE, interfaces
 - **Monitor** — CPU, memory, uptime, traffic, online users
-- **Security** — firewall rules, access control, URL filtering
+- **Security** — ACL, MAC filtering, L7 rules, URL filtering, domain blacklist, peerconn, terminals
 - **Users** — account management, auth-server, bandwidth limits
 - **Routing** — static routes, policy routing, multi-WAN
 - **VPN** — IPSec, PPTP, L2TP, WireGuard
@@ -156,7 +156,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and 7 domain-specific [skills](.
 | [monitor](skills/monitor.md) | System status, CPU, memory, traffic, online clients |
 | [network](skills/network.md) | DNS, DHCP, VLAN, NAT, WAN, LAN, PPPoE |
 | [users](skills/users.md) | Online users, kick, accounts, packages |
-| [security](skills/security.md) | ACL, MAC filter, URL filter, domain blacklist |
+| [security](skills/security.md) | ACL, MAC filter, L7, URL filter, domain blacklist, peerconn, terminals |
 | [vpn](skills/vpn.md) | PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard |
 | [system](skills/system.md) | Config, schedules, remote access, VRRP, SSH reset |
 | [batch](skills/batch.md) | Multi-command workflows: init, bulk DHCP, backup |

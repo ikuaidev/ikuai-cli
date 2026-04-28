@@ -96,7 +96,7 @@ ikuai-cli network dns get                    # DNS 配置
 ikuai-cli network dns proxy create --domain example.com --dns-addr 8.8.8.8 --parse-type ipv4
 ikuai-cli network pppoe set --comment maintenance --mtu 1480 --mru 1480
 ikuai-cli users online                       # 在线用户
-ikuai-cli security acl list                  # 防火墙规则
+ikuai-cli security acl list                  # 安全策略
 ikuai-cli log system list --human-time       # 系统日志
 ```
 
@@ -106,7 +106,7 @@ ikuai-cli log system list --human-time       # 系统日志
 
 - **网络管理** — DNS、DHCP、VLAN、NAT、PPPoE、网口配置
 - **系统监控** — CPU、内存、运行时间、流量、在线用户
-- **安全策略** — 防火墙规则、访问控制、URL 过滤
+- **安全策略** — ACL、MAC 过滤、L7 规则、URL 过滤、域名黑名单、连接数限制、终端标注
 - **用户管理** — 账号管理、认证服务器、带宽限制
 - **路由配置** — 静态路由、策略路由、多 WAN 负载均衡
 - **VPN** — IPSec、PPTP、L2TP、WireGuard
@@ -156,7 +156,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和 7 个领域 [skills](./skills/)，
 | [monitor](skills/monitor.md) | 系统状态、CPU、内存、流量、在线客户端 |
 | [network](skills/network.md) | DNS、DHCP、VLAN、NAT、WAN、LAN、PPPoE |
 | [users](skills/users.md) | 在线用户、踢下线、账户、套餐 |
-| [security](skills/security.md) | ACL、MAC 过滤、URL 过滤、域名黑名单 |
+| [security](skills/security.md) | ACL、MAC 过滤、L7、URL 过滤、域名黑名单、连接数限制、终端标注 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |
 | [system](skills/system.md) | 系统配置、定时任务、远程访问、VRRP、SSH 重置 |
 | [batch](skills/batch.md) | 组合工作流：初始化、批量 DHCP、配置备份 |

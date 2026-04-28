@@ -77,6 +77,11 @@ var integerAPIFields = map[string]bool{
 	"bind_vlan": true, "verify_vlan": true, "bind_iface": true,
 	"mtu": true, "mru": true, "lcp_echo_interval": true,
 	"lcp_echo_failure": true, "maxconnect": true, "restart_timer": true,
+	"acl_mac": true, "mode": true,
+	"noping_lan": true, "noping_wan": true, "notracert": true,
+	"hijack_ping": true, "invalid": true, "dos_lan": true,
+	"dos_lan_num": true, "tcp_mss": true, "tcp_mss_num": true,
+	"nol2rt": true, "ttl_num": true,
 }
 
 // MergeDataWithFlags parses --data JSON, then overlays any explicitly set
