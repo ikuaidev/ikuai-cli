@@ -57,6 +57,8 @@ var qosMACAddrFields = map[string]string{
 var qosMACCreateDefaults = map[string]interface{}{
 	"enabled": "yes",
 	"comment": "",
+	"type":    0,
+	"ip_type": "4",
 	"time": map[string]interface{}{
 		"custom": []interface{}{
 			map[string]interface{}{
@@ -72,11 +74,11 @@ func addQoSIPFlags(cmd *cobra.Command) {
 	cmd.Flags().String("name", "", "Rule name (tagname)")
 	cmd.Flags().String("ip-addr", "", "IP address or range")
 	cmd.Flags().String("interface", "", "Network interface")
-	cmd.Flags().String("protocol", "", "Protocol (tcp/udp/all)")
+	cmd.Flags().String("protocol", "", "Protocol (any/tcp/udp/tcp+udp)")
 	cmd.Flags().String("src-port", "", "Source port")
 	cmd.Flags().String("dst-port", "", "Destination port")
-	cmd.Flags().String("upload", "", "Upload bandwidth limit")
-	cmd.Flags().String("download", "", "Download bandwidth limit")
+	cmd.Flags().String("upload", "", "Upload bandwidth limit in Kbps")
+	cmd.Flags().String("download", "", "Download bandwidth limit in Kbps")
 	cmd.Flags().String("comment", "", "Comment")
 	cliapp.AddEnabledFlag(cmd)
 }
@@ -85,8 +87,8 @@ func addQoSMACFlags(cmd *cobra.Command) {
 	cmd.Flags().String("name", "", "Rule name (tagname)")
 	cmd.Flags().String("mac-addr", "", "MAC address")
 	cmd.Flags().String("interface", "", "Network interface")
-	cmd.Flags().String("upload", "", "Upload bandwidth limit")
-	cmd.Flags().String("download", "", "Download bandwidth limit")
+	cmd.Flags().String("upload", "", "Upload bandwidth limit in Kbps")
+	cmd.Flags().String("download", "", "Download bandwidth limit in Kbps")
 	cmd.Flags().String("comment", "", "Comment")
 	cliapp.AddEnabledFlag(cmd)
 }
@@ -151,7 +153,7 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 
 	createCmd := dataCommandImpl(app, "create", "Create a "+name+" QoS rule", false, addFlags, fieldMap, addrFields, defaults, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
-	})
+	}, "")
 	if len(requiredCreateFlags) > 0 {
 		cliapp.MarkFlagsRequired(createCmd, requiredCreateFlags...)
 		origRunE := createCmd.RunE
@@ -164,11 +166,11 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 	}
 	updateCmd := dataCommandImpl(app, "update ID", "Update a "+name+" QoS rule", true, addFlags, fieldMap, addrFields, nil, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
-	})
+	}, apiPath)
 	toggleFieldMap := map[string]string{"enabled": "enabled"}
 	toggleCmd := dataCommandImpl(app, "toggle ID", "Enable/disable a "+name+" QoS rule", true, cliapp.AddEnabledFlag, toggleFieldMap, nil, nil, func(body interface{}, id string) (json.RawMessage, error) {
 		return app.APIClient.Patch(cliapp.APIBase+"/"+apiPath+"/"+id, body)
-	})
+	}, "")
 
 	deleteCmd := &cobra.Command{
 		Use:     "delete ID",
@@ -200,7 +202,7 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 
 type callWithBody func(body interface{}, id string) (json.RawMessage, error)
 
-func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags func(*cobra.Command), fieldMap map[string]string, addrFields map[string]string, defaults map[string]interface{}, fn callWithBody) *cobra.Command {
+func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, addFlags func(*cobra.Command), fieldMap map[string]string, addrFields map[string]string, defaults map[string]interface{}, fn callWithBody, fullUpdatePath string) *cobra.Command {
 	c := &cobra.Command{
 		Use:   use,
 		Short: short,
@@ -248,6 +250,12 @@ func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, addFla
 				"object": []interface{}{},
 			}
 		}
+		if withID && fullUpdatePath != "" {
+			body, err = qosFullUpdateBody(app, fullUpdatePath, args[0], body)
+			if err != nil {
+				return err
+			}
+		}
 		id := ""
 		if withID {
 			id = args[0]
@@ -267,4 +275,89 @@ func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, addFla
 		cliapp.MarkFlagsRequired(c, "enabled")
 	}
 	return c
+}
+
+func qosFullUpdateBody(app *cliapp.Runtime, apiPath, id string, updates map[string]interface{}) (map[string]interface{}, error) {
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/"+apiPath+"/"+id, nil)
+	if err != nil {
+		return nil, err
+	}
+	current, err := qosInputFromGet(raw)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	return current, nil
+}
+
+func qosInputFromGet(raw json.RawMessage) (map[string]interface{}, error) {
+	var value interface{}
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, err
+	}
+	body, ok := findQoSObject(value)
+	if !ok {
+		return nil, &cliapp.ValidationError{Message: "unexpected QoS get response"}
+	}
+	result := map[string]interface{}{}
+	for k, v := range body {
+		if k == "id" {
+			continue
+		}
+		result[k] = v
+	}
+	normalizeQoSBody(result)
+	return result, nil
+}
+
+func findQoSObject(value interface{}) (map[string]interface{}, bool) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if _, ok := typed["tagname"]; ok {
+			return typed, true
+		}
+		for _, key := range []string{"data", "results"} {
+			if nested, ok := typed[key]; ok {
+				if found, ok := findQoSObject(nested); ok {
+					return found, true
+				}
+			}
+		}
+	case []interface{}:
+		if len(typed) == 0 {
+			return nil, false
+		}
+		return findQoSObject(typed[0])
+	}
+	return nil, false
+}
+
+func normalizeQoSBody(value interface{}) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		for k, child := range typed {
+			if (k == "custom" || k == "object") && emptyQoSMap(child) {
+				typed[k] = []interface{}{}
+				continue
+			}
+			normalizeQoSBody(child)
+		}
+	case []interface{}:
+		for _, child := range typed {
+			normalizeQoSBody(child)
+		}
+	}
+}
+
+func emptyQoSMap(value interface{}) bool {
+	if typed, ok := value.(map[string]interface{}); ok {
+		return len(typed) == 0
+	}
+	return false
 }

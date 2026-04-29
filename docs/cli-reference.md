@@ -189,9 +189,14 @@ ikuai-cli routing stream l7 list
 ## QoS
 
 ```bash
-ikuai-cli qos ip list
-ikuai-cli qos ip create --name "Limit" --ip-addr 192.168.1.100 --upload 10M --download 50M
-ikuai-cli qos mac list
+ikuai-cli qos ip list --format json
+ikuai-cli qos ip create --name limit100 --ip-addr 192.168.1.100 --interface wan1 --upload 1000 --download 1000 --format json
+ikuai-cli qos ip update <ID> --name limit100u --upload 1200 --download 1300 --format json
+ikuai-cli qos ip toggle <ID> --enabled no --format json
+ikuai-cli qos ip delete <ID> --yes --format json
+ikuai-cli qos mac list --format json
+ikuai-cli qos mac create --name limitmac --mac-addr 00:11:22:33:44:55 --interface wan1 --upload 500 --download 500 --format json
+ikuai-cli qos mac delete <ID> --yes --format json
 ```
 
 ## Log
