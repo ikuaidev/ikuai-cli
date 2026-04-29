@@ -85,7 +85,7 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 			}
 			// writeCmd merges createDefaults into the body, so we check key fields.
 			bs := string(body)
-			for _, want := range []string{`"tagname":"office-cap"`, `"upload":"20M"`, `"download":"20M"`, `"interface":"wan1"`} {
+			for _, want := range []string{`"tagname":"office-cap"`, `"upload":2000`, `"download":2000`, `"interface":"wan1"`} {
 				if !bytes.Contains(body, []byte(want)) {
 					t.Fatalf("body missing %s: %s", want, bs)
 				}
@@ -96,7 +96,7 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"ip", "create", "--name", "office-cap", "--interface", "wan1", "--upload", "20M", "--download", "20M"})
+	cmd.SetArgs([]string{"ip", "create", "--name", "office-cap", "--interface", "wan1", "--upload", "2000", "--download", "2000"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -105,6 +105,73 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 	want := "{\"message\":\"created\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestIPUpdateSendsFullBodyFromGet(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	var seenGet bool
+	var seenPut bool
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-qos"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			switch req.Method {
+			case http.MethodGet:
+				seenGet = true
+				if req.URL.String() != "https://router.local/api/v4.0/network/qos/ip/7" {
+					t.Fatalf("GET URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/network/qos/ip/7")
+				}
+				return jsonResponse(`{"code":0,"data":{"id":7,"tagname":"old-qos","enabled":"yes","upload":100,"download":200,"type":0,"protocol":"any","comment":"","interface":"wan1","ip_addr":{"custom":["192.0.2.10"],"object":[]},"src_port":{"custom":[],"object":[]},"dst_port":{"custom":[],"object":[]},"attr":0}}`), nil
+			case http.MethodPut:
+				seenPut = true
+				if req.URL.String() != "https://router.local/api/v4.0/network/qos/ip/7" {
+					t.Fatalf("PUT URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/network/qos/ip/7")
+				}
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					t.Fatalf("ReadAll() error = %v", err)
+				}
+				bs := string(body)
+				for _, want := range []string{
+					`"tagname":"new-qos"`,
+					`"enabled":"yes"`,
+					`"upload":100`,
+					`"download":300`,
+					`"interface":"wan1"`,
+					`"protocol":"any"`,
+					`"attr":0`,
+					`"src_port":{"custom":[],"object":[]}`,
+					`"dst_port":{"custom":[],"object":[]}`,
+					`"ip_addr":{"custom":["192.0.2.10"],"object":[]}`,
+				} {
+					if !bytes.Contains(body, []byte(want)) {
+						t.Fatalf("body missing %s: %s", want, bs)
+					}
+				}
+				for _, forbidden := range []string{`"id":`} {
+					if bytes.Contains(body, []byte(forbidden)) {
+						t.Fatalf("body contains %s: %s", forbidden, bs)
+					}
+				}
+				return jsonResponse(`{"code":0,"message":"updated","data":null}`), nil
+			default:
+				t.Fatalf("method = %q, want GET or PUT", req.Method)
+			}
+			return nil, nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"ip", "update", "7", "--name", "new-qos", "--download", "300"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if !seenGet || !seenPut {
+		t.Fatalf("seenGet=%v seenPut=%v, want both true", seenGet, seenPut)
 	}
 }
 
