@@ -167,13 +167,32 @@ ikuai-cli security secondary-route-get
 ```bash
 ikuai-cli vpn pptp get
 ikuai-cli vpn pptp clients
+ikuai-cli vpn pptp client-create --name pptpoffice --server vpn.example.com --username user1 --password 123456 --interface auto --enabled no
+ikuai-cli vpn pptp client-get <ID>
+ikuai-cli vpn pptp client-update <ID> --comment updated
+ikuai-cli vpn pptp client-toggle <ID> --enabled no
+ikuai-cli vpn pptp client-delete <ID> --yes
 ikuai-cli vpn l2tp get
 ikuai-cli vpn l2tp clients
 ikuai-cli vpn openvpn get
+ikuai-cli vpn openvpn client-create --name ovpnoffice --remote-addr vpn.example.com --username user1 --password 123456 --ca "<CA证书>" --interface auto --enabled no
 ikuai-cli vpn ikev2 get
+ikuai-cli vpn ikev2 client-create --name ikedoffice --remote-addr vpn.example.com --interface auto --left-id localid --username user1 --password 123456 --enabled no
 ikuai-cli vpn ipsec clients
+ikuai-cli vpn ipsec client-create --name ipsecsite --remote-addr 10.0.0.1 --interface wan1 --left-subnet 192.168.1.0/24 --right-subnet 192.168.2.0/24 --secret psk123 --enabled no
+ikuai-cli vpn ipsec client-get <ID>
+ikuai-cli vpn ipsec client-update <ID> --comment updated
+ikuai-cli vpn ipsec client-toggle <ID> --enabled no
+ikuai-cli vpn ipsec client-delete <ID> --yes
 ikuai-cli vpn wireguard list
-ikuai-cli vpn wireguard peers
+ikuai-cli vpn wireguard create --name wgsite --address 10.9.0.1/24 --interface auto --private-key "<base64>" --public-key "<base64>" --enabled no
+ikuai-cli vpn wireguard update <ID> --interface auto --port 5001
+ikuai-cli vpn wireguard peers <ID>
+ikuai-cli vpn wireguard peer-create <ID> --public-key "<base64>" --allow-ips 10.9.0.2/32 --interface wgsite --enabled no
+ikuai-cli vpn wireguard peer-get <ID> <PEER_ID>
+ikuai-cli vpn wireguard peer-update <ID> <PEER_ID> --interface wgsite --comment updated
+ikuai-cli vpn wireguard peer-toggle <ID> <PEER_ID> --enabled no
+ikuai-cli vpn wireguard peer-delete <ID> <PEER_ID> --yes
 ```
 
 ## Routing

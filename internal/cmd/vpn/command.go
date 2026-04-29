@@ -108,6 +108,23 @@ var (
 		"ca":                "",
 	}
 
+	pptpClientUpdateInputFields = []string{
+		"id", "enabled", "name", "comment", "server", "server_port", "username", "passwd",
+		"interface", "mtu", "mru", "check_link_mode", "check_link_host", "timing_rst_switch",
+		"timing_rst_week", "timing_rst_time", "cycle_rst_time",
+	}
+	l2tpClientUpdateInputFields = []string{
+		"id", "enabled", "name", "comment", "server", "server_port", "username", "passwd",
+		"ipsec_secret", "interface", "leftid", "rightid", "mtu", "mru", "check_link_mode",
+		"check_link_host", "timing_rst_switch", "timing_rst_week", "timing_rst_time", "cycle_rst_time",
+	}
+	openvpnClientUpdateInputFields = []string{
+		"id", "enabled", "name", "comment", "remote_addr", "remote_port", "method", "username",
+		"password", "interface", "proto", "dev_type", "cipher", "tls_auth", "ca", "cert", "key",
+		"accept_push_route", "route", "comp_lzo", "tun_mtu", "check_link_mode", "check_link_host",
+		"timing_rst_switch", "timing_rst_week", "timing_rst_time", "extra_config",
+	}
+
 	// IKEv2 client
 	ikev2ClientFieldMap = map[string]string{
 		"name":        "name",
@@ -128,6 +145,10 @@ var (
 		"authby":          "mschapv2",
 		"check_link_mode": 3,
 		"check_link_host": "www.baidu.com",
+	}
+	ikev2ClientUpdateInputFields = []string{
+		"id", "enabled", "name", "comment", "remote_addr", "interface", "authby", "secret",
+		"leftid", "rightid", "username", "passwd", "check_link_mode", "check_link_host",
 	}
 
 	// IPSec client
@@ -157,6 +178,13 @@ var (
 		"esp_auth":    "sha256",
 		"aggressive":  "0",
 	}
+	ipsecClientUpdateInputFields = []string{
+		"id", "name", "comment", "remote_addr", "authby", "leftsubnet", "rightsubnet",
+		"interface", "enabled", "keyexchange", "aggressive", "ikelifetime", "ike_enc",
+		"ike_auth", "ike_dh", "secret", "leftid", "rightid", "privatekey", "leftcert",
+		"rightcert", "lifetime", "esp_enc", "esp_auth", "dpdaction", "dpddelay",
+		"dpdtimeout", "compress",
+	}
 
 	// WireGuard tunnel
 	wireguardFieldMap = map[string]string{
@@ -164,7 +192,6 @@ var (
 		"interface": "interface",
 		"address":   "local_address",
 		"port":      "local_listenport",
-		"comment":   "comment",
 		"enabled":   "enabled",
 	}
 	wireguardDefaults = map[string]interface{}{
@@ -172,7 +199,10 @@ var (
 		"interface":        "auto",
 		"local_listenport": 5000,
 		"mtu":              1420,
-		"keepalive":        0,
+	}
+	wireguardInputFields = []string{
+		"enabled", "name", "interface", "local_privatekey", "local_publickey", "local_address",
+		"local_listenport", "mtu",
 	}
 
 	// WireGuard peer
@@ -190,6 +220,10 @@ var (
 		"comment":   "",
 		"keepalive": 0,
 	}
+	wireguardPeerInputFields = []string{
+		"enabled", "comment", "interface", "peer_publickey", "presharedkey", "allowips",
+		"endpoint", "endpoint_port", "keepalive",
+	}
 
 	// --- VPN server field maps ---
 
@@ -203,6 +237,9 @@ var (
 		"open-mppe":   "open_mppe",
 		"mtu":         "mtu",
 		"mru":         "mru",
+	}
+	pptpServerInputFields = []string{
+		"enabled", "dns1", "dns2", "addr_pool", "open_mppe", "server_ip", "server_port", "mtu", "mru",
 	}
 
 	l2tpServerFieldMap = map[string]string{
@@ -219,24 +256,59 @@ var (
 		"rightid":      "rightid",
 		"force-ipsec":  "force_ipsec",
 	}
+	l2tpServerInputFields = []string{
+		"enabled", "server_ip", "server_port", "addr_pool", "dns1", "dns2", "mtu", "mru",
+		"ipsec_secret", "leftid", "rightid", "force_ipsec",
+	}
 
 	openvpnServerFieldMap = map[string]string{
-		"enabled":     "enabled",
-		"server-ip":   "server_ip",
-		"server-port": "server_port",
-		"addr-pool":   "addr_pool",
-		"dns1":        "dns1",
-		"dns2":        "dns2",
-		"proto":       "proto",
-		"mtu":         "mtu",
+		"enabled":            "enabled",
+		"proto":              "proto",
+		"port":               "port",
+		"server-port":        "port",
+		"subnet":             "subnet",
+		"mask":               "mask",
+		"tun-mtu":            "tun_mtu",
+		"mtu":                "tun_mtu",
+		"cipher":             "cipher",
+		"comp-lzo":           "comp_lzo",
+		"dev-type":           "dev_type",
+		"topology":           "topology",
+		"method":             "method",
+		"tls-auth":           "tls_auth",
+		"ca":                 "ca",
+		"cert":               "cert",
+		"key":                "key",
+		"push-gateway":       "push_gateway",
+		"push-route":         "push_route",
+		"push-route-comment": "push_route_comment",
+		"push-dns":           "push_dns",
+		"extra-config":       "extra_config",
+	}
+	openvpnServerInputFields = []string{
+		"enabled", "proto", "port", "subnet", "mask", "tun_mtu", "cipher", "comp_lzo",
+		"dev_type", "topology", "method", "tls_auth", "ca", "cert", "key", "push_gateway",
+		"push_route", "push_route_comment", "push_dns", "extra_config",
 	}
 
 	ikev2ServerFieldMap = map[string]string{
-		"enabled":   "enabled",
-		"server-ip": "server_ip",
-		"addr-pool": "addr_pool",
-		"dns1":      "dns1",
-		"dns2":      "dns2",
+		"enabled":     "enabled",
+		"authby":      "authby",
+		"addrpool":    "addrpool",
+		"addr-pool":   "addrpool",
+		"secret":      "secret",
+		"leftid":      "leftid",
+		"rightid":     "rightid",
+		"dns1":        "dns1",
+		"dns2":        "dns2",
+		"share-deny":  "share_deny",
+		"mtu":         "mtu",
+		"private-key": "privatekey",
+		"left-cert":   "leftcert",
+	}
+	ikev2ServerInputFields = []string{
+		"id", "enabled", "authby", "addrpool", "secret", "leftid", "rightid", "dns1",
+		"dns2", "share_deny", "mtu", "privatekey", "leftcert", "aggressive", "keyexchange", "name",
 	}
 )
 
@@ -253,23 +325,23 @@ func New(app *cliapp.Runtime) *cobra.Command {
 
 	vpnCmd.AddCommand(vpnServerGroup(app, "pptp", "vpn/pptp", pptpClientFieldMap, pptpClientDefaults,
 		[]string{"id", "name", "server", "username", "interface", "enabled"}, pptpServerFieldMap,
-		[]string{"name", "server", "username", "password", "interface"}))
+		pptpServerInputFields, pptpClientUpdateInputFields, []string{"name", "server", "username", "password", "interface"}))
 	vpnCmd.AddCommand(vpnServerGroup(app, "l2tp", "vpn/l2tp", l2tpClientFieldMap, l2tpClientDefaults,
 		[]string{"id", "name", "server", "username", "interface", "enabled"}, l2tpServerFieldMap,
-		[]string{"name", "server", "username", "password", "interface"}))
+		l2tpServerInputFields, l2tpClientUpdateInputFields, []string{"name", "server", "username", "password", "interface"}))
 	vpnCmd.AddCommand(vpnServerGroup(app, "openvpn", "vpn/openvpn", openvpnClientFieldMap, openvpnClientDefaults,
 		[]string{"id", "name", "remote_addr", "remote_port", "proto", "interface", "enabled"}, openvpnServerFieldMap,
-		[]string{"name", "remote-addr", "interface"}))
+		openvpnServerInputFields, openvpnClientUpdateInputFields, []string{"name", "remote-addr", "interface", "username", "password", "ca"}))
 	vpnCmd.AddCommand(vpnServerGroup(app, "ikev2", "vpn/ikev2", ikev2ClientFieldMap, ikev2ClientDefaults,
 		[]string{"id", "name", "remote_addr", "interface", "authby", "enabled"}, ikev2ServerFieldMap,
-		[]string{"name", "remote-addr", "interface", "left-id"}))
+		ikev2ServerInputFields, ikev2ClientUpdateInputFields, []string{"name", "remote-addr", "interface", "left-id"}))
 	vpnCmd.AddCommand(ipsecGroup(app))
 	vpnCmd.AddCommand(wireguardGroup(app))
 
 	return vpnCmd
 }
 
-func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap map[string]string, clientDefaults map[string]interface{}, defaultColumns []string, serverFieldMap map[string]string, requiredCreateFlags []string) *cobra.Command {
+func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap map[string]string, clientDefaults map[string]interface{}, defaultColumns []string, serverFieldMap map[string]string, serverInputFields []string, clientUpdateInputFields []string, requiredCreateFlags []string) *cobra.Command {
 	grp := &cobra.Command{Use: name, Short: name + " VPN"}
 
 	getCmd := &cobra.Command{
@@ -292,9 +364,7 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 		for flagName := range serverFieldMap {
 			c.Flags().String(flagName, "", flagName)
 		}
-	}, serverFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
-		return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/services", body)
-	})
+	}, serverFieldMap, serverInputFields, cliapp.APIBase+"/"+apiPath+"/services")
 
 	clientsCmd := &cobra.Command{
 		Use:   "clients",
@@ -332,13 +402,16 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 			return origRunE(cmd, args)
 		}
 	}
-	clientUpdateCmd := writeCmd(app, "client-update ID", "Update a "+name+" client", true, clientFieldMap, nil, nil,
+	clientGetCmd := getByIDCmd(app, "client-get ID", "Get a "+name+" client", "/"+apiPath+"/clients/")
+	clientUpdateCmd := updateByIDCmd(app, "client-update ID", "Update a "+name+" client", clientFieldMap, clientUpdateInputFields, cliapp.APIBase+"/"+apiPath+"/clients/")
+	clientToggleCmd := writeCmd(app, "client-toggle ID", "Enable/disable a "+name+" client", true, map[string]string{"enabled": "enabled"}, nil, nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/clients/"+id, body)
+			return app.APIClient.Patch(cliapp.APIBase+"/"+apiPath+"/clients/"+id, body)
 		})
+	clientDeleteCmd := deleteByIDCmd(app, "client-delete ID", "Delete a "+name+" client", "/"+apiPath+"/clients/")
 	kickCmd := deleteByIDCmd(app, "kick ID", "Kick / delete a "+name+" client", "/"+apiPath+"/clients/")
 
-	grp.AddCommand(getCmd, setCmd, clientsCmd, clientCreateCmd, clientUpdateCmd, kickCmd)
+	grp.AddCommand(getCmd, setCmd, clientsCmd, clientGetCmd, clientCreateCmd, clientUpdateCmd, clientToggleCmd, clientDeleteCmd, kickCmd)
 	return grp
 }
 
@@ -381,11 +454,14 @@ func ipsecGroup(app *cliapp.Runtime) *cobra.Command {
 	}
 	grp.AddCommand(
 		clientsCmd,
+		getByIDCmd(app, "client-get ID", "Get an IPSec client", "/vpn/ipsec/clients/"),
 		createCmd,
-		writeCmd(app, "client-update ID", "Update an IPSec client", true, ipsecClientFieldMap, nil, nil,
+		updateByIDCmd(app, "client-update ID", "Update an IPSec client", ipsecClientFieldMap, ipsecClientUpdateInputFields, cliapp.APIBase+"/vpn/ipsec/clients/"),
+		writeCmd(app, "client-toggle ID", "Enable/disable an IPSec client", true, map[string]string{"enabled": "enabled"}, nil, nil,
 			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Put(cliapp.APIBase+"/vpn/ipsec/clients/"+id, body)
+				return app.APIClient.Patch(cliapp.APIBase+"/vpn/ipsec/clients/"+id, body)
 			}),
+		deleteByIDCmd(app, "client-delete ID", "Delete an IPSec client", "/vpn/ipsec/clients/"),
 		deleteByIDCmd(app, "kick ID", "Kick an active IPSec client", "/vpn/ipsec/clients/"),
 	)
 	return grp
@@ -457,6 +533,17 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 			return origRunE(cmd, args)
 		}
 	}
+	wgUpdateCmd := updateByIDCmd(app, "update ID", "Update a WireGuard tunnel", wireguardFieldMap, wireguardInputFields, cliapp.APIBase+"/vpn/wireguard/")
+	cliapp.MarkFlagsRequired(wgUpdateCmd, "interface")
+	{
+		origRunE := wgUpdateCmd.RunE
+		wgUpdateCmd.RunE = func(cmd *cobra.Command, args []string) error {
+			if err := cliapp.RequireFlags(cmd, "interface"); err != nil {
+				return err
+			}
+			return origRunE(cmd, args)
+		}
+	}
 	peerCreateCmd := writeCmd(app, "peer-create ID", "Create a peer on a WireGuard tunnel", true, wireguardPeerFieldMap, nil, wireguardPeerDefaults,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/vpn/wireguard/"+id+"/peers", body)
@@ -475,17 +562,17 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 		listCmd,
 		getByIDCmd(app, "get ID", "Get a WireGuard tunnel", "/vpn/wireguard/"),
 		wgCreateCmd,
-		writeCmd(app, "update ID", "Update a WireGuard tunnel", true, wireguardFieldMap, nil, nil,
-			func(body interface{}, id string) (json.RawMessage, error) {
-				return app.APIClient.Put(cliapp.APIBase+"/vpn/wireguard/"+id, body)
-			}),
+		wgUpdateCmd,
 		writeCmd(app, "toggle ID", "Enable/disable a WireGuard tunnel", true, map[string]string{"enabled": "enabled"}, nil, nil,
 			func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Patch(cliapp.APIBase+"/vpn/wireguard/"+id, body)
 			}),
 		deleteByIDCmd(app, "delete ID", "Delete a WireGuard tunnel", "/vpn/wireguard/"),
 		peersListCmd,
+		peerGetCmd(app),
 		peerCreateCmd,
+		peerUpdateCmd(app),
+		peerToggleCmd(app),
 		peerDeleteCmd(app),
 	)
 	return grp
@@ -508,6 +595,124 @@ func getByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command 
 			return nil
 		},
 	}
+}
+
+func updateByIDCmd(app *cliapp.Runtime, use, short string, fieldMap map[string]string, inputFields []string, apiPathPrefix string) *cobra.Command {
+	c := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+	}
+	addBodyFlags(c, fieldMap)
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := app.RequireAuth(); err != nil {
+			return err
+		}
+		data, _ := cmd.Flags().GetString("data")
+		body, err := buildFullBody(app, cmd, data, fieldMap, inputFields, apiPathPrefix+args[0], args[0])
+		if err != nil {
+			return err
+		}
+		raw, err := app.APIClient.Put(apiPathPrefix+args[0], body)
+		if err != nil {
+			return err
+		}
+		app.PrintRaw(raw)
+		return nil
+	}
+	return c
+}
+
+func peerGetCmd(app *cliapp.Runtime) *cobra.Command {
+	return &cobra.Command{
+		Use:   "peer-get TUNNEL_ID PEER_ID",
+		Short: "Get a WireGuard peer",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			raw, err := app.APIClient.Get(cliapp.APIBase+"/vpn/wireguard/"+args[0]+"/peers/"+args[1], nil)
+			if err != nil {
+				return err
+			}
+			app.PrintRaw(raw)
+			return nil
+		},
+	}
+}
+
+func peerUpdateCmd(app *cliapp.Runtime) *cobra.Command {
+	c := &cobra.Command{
+		Use:   "peer-update TUNNEL_ID PEER_ID",
+		Short: "Update a WireGuard peer",
+		Args:  cobra.ExactArgs(2),
+	}
+	addBodyFlags(c, wireguardPeerFieldMap)
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := app.RequireAuth(); err != nil {
+			return err
+		}
+		path := cliapp.APIBase + "/vpn/wireguard/" + args[0] + "/peers/" + args[1]
+		data, _ := cmd.Flags().GetString("data")
+		body, err := buildFullBody(app, cmd, data, wireguardPeerFieldMap, wireguardPeerInputFields, path, args[1])
+		if err != nil {
+			return err
+		}
+		raw, err := app.APIClient.Put(path, body)
+		if err != nil {
+			return err
+		}
+		app.PrintRaw(raw)
+		return nil
+	}
+	return c
+}
+
+func peerToggleCmd(app *cliapp.Runtime) *cobra.Command {
+	c := &cobra.Command{
+		Use:   "peer-toggle TUNNEL_ID PEER_ID",
+		Short: "Enable/disable a WireGuard peer",
+		Args:  cobra.ExactArgs(2),
+	}
+	c.Flags().String("data", "{}", "JSON body (escape hatch)")
+	cliapp.AddEnabledFlag(c)
+	cliapp.MarkFlagsRequired(c, "enabled")
+	c.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := app.RequireAuth(); err != nil {
+			return err
+		}
+		if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
+			return err
+		}
+		data, _ := cmd.Flags().GetString("data")
+		body, err := cliapp.MergeDataWithFlags(data, cmd, map[string]string{"enabled": "enabled"})
+		if err != nil {
+			return err
+		}
+		raw, err := app.APIClient.Patch(cliapp.APIBase+"/vpn/wireguard/"+args[0]+"/peers/"+args[1], body)
+		if err != nil {
+			return err
+		}
+		app.PrintRaw(raw)
+		return nil
+	}
+	return c
+}
+
+func addBodyFlags(c *cobra.Command, fieldMap map[string]string) {
+	c.Flags().String("data", "{}", "JSON body (escape hatch)")
+	for flagName := range fieldMap {
+		if flagName == "enabled" {
+			continue
+		}
+		desc := flagDescs[flagName]
+		if desc == "" {
+			desc = flagName + " value"
+		}
+		c.Flags().String(flagName, "", desc)
+	}
+	cliapp.AddEnabledFlag(c)
 }
 
 func peerDeleteCmd(app *cliapp.Runtime) *cobra.Command {
@@ -594,7 +799,7 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		c.Flags().String(flagName, "", desc)
 	}
 	cliapp.AddEnabledFlag(c)
-	if strings.HasPrefix(use, "toggle") {
+	if isToggleUse(use) {
 		cliapp.MarkFlagsRequired(c, "enabled")
 	}
 
@@ -602,7 +807,7 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		if err := app.RequireAuth(); err != nil {
 			return err
 		}
-		if strings.HasPrefix(use, "toggle") {
+		if isToggleUse(use) {
 			if err := cliapp.RequireFlags(cmd, "enabled"); err != nil {
 				return err
 			}
@@ -649,8 +854,13 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 	return c
 }
 
-// configCmdWithFlags builds a --data config command with optional semantic flags.
-func configCmdWithFlags(app *cliapp.Runtime, use, short string, addFlags func(*cobra.Command), fieldMap map[string]string, fn callWithBody) *cobra.Command {
+func isToggleUse(use string) bool {
+	action := strings.Fields(use)
+	return len(action) > 0 && strings.Contains(action[0], "toggle")
+}
+
+// configCmdWithFlags builds a full-body config PUT command with optional semantic flags.
+func configCmdWithFlags(app *cliapp.Runtime, use, short string, addFlags func(*cobra.Command), fieldMap map[string]string, inputFields []string, apiPath string) *cobra.Command {
 	c := &cobra.Command{Use: use, Short: short}
 	c.Flags().String("data", "{}", "JSON body")
 	if addFlags != nil {
@@ -661,17 +871,11 @@ func configCmdWithFlags(app *cliapp.Runtime, use, short string, addFlags func(*c
 			return err
 		}
 		data, _ := cmd.Flags().GetString("data")
-		var body interface{}
-		var err error
-		if fieldMap != nil {
-			body, err = cliapp.MergeDataWithFlags(data, cmd, fieldMap)
-		} else {
-			body, err = cliapp.ParseJSON(data)
-		}
+		body, err := buildFullBody(app, cmd, data, fieldMap, inputFields, apiPath, "")
 		if err != nil {
 			return err
 		}
-		raw, err := fn(body, "")
+		raw, err := app.APIClient.Put(apiPath, body)
 		if err != nil {
 			return err
 		}
@@ -679,4 +883,100 @@ func configCmdWithFlags(app *cliapp.Runtime, use, short string, addFlags func(*c
 		return nil
 	}
 	return c
+}
+
+func buildFullBody(app *cliapp.Runtime, cmd *cobra.Command, data string, fieldMap map[string]string, inputFields []string, getPath string, fallbackID string) (map[string]interface{}, error) {
+	changes, err := cliapp.MergeDataWithFlags(data, cmd, fieldMap)
+	if err != nil {
+		return nil, err
+	}
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(getPath, nil)
+	if err != nil {
+		if hasAllInputFields(changes, inputFields) {
+			return changes, nil
+		}
+		return nil, err
+	}
+	current, err := extractVPNInputObject(raw, inputFields)
+	if err != nil {
+		if hasAllInputFields(changes, inputFields) {
+			return changes, nil
+		}
+		return nil, err
+	}
+	for k, v := range changes {
+		current[k] = v
+	}
+	if fallbackID != "" && hasInputField(inputFields, "id") {
+		if _, exists := current["id"]; !exists {
+			current["id"] = fallbackID
+		}
+	}
+	return current, nil
+}
+
+func extractVPNInputObject(raw json.RawMessage, inputFields []string) (map[string]interface{}, error) {
+	var v interface{}
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return nil, err
+	}
+	obj, err := findFirstVPNObject(v)
+	if err != nil {
+		return nil, err
+	}
+	if len(inputFields) == 0 {
+		return obj, nil
+	}
+	out := map[string]interface{}{}
+	for _, key := range inputFields {
+		if val, ok := obj[key]; ok {
+			out[key] = val
+		}
+	}
+	return out, nil
+}
+
+func findFirstVPNObject(v interface{}) (map[string]interface{}, error) {
+	switch data := v.(type) {
+	case map[string]interface{}:
+		if rows, ok := data["data"].([]interface{}); ok {
+			return findFirstVPNObject(rows)
+		}
+		if rows, ok := data["results"].([]interface{}); ok {
+			return findFirstVPNObject(rows)
+		}
+		if rows, ok := data["iface_data"].([]interface{}); ok {
+			return findFirstVPNObject(rows)
+		}
+		return data, nil
+	case []interface{}:
+		if len(data) == 0 {
+			return nil, &cliapp.ValidationError{Message: "empty VPN response"}
+		}
+		return findFirstVPNObject(data[0])
+	default:
+		return nil, &cliapp.ValidationError{Message: "unexpected VPN response"}
+	}
+}
+
+func hasAllInputFields(body map[string]interface{}, inputFields []string) bool {
+	for _, key := range inputFields {
+		if _, ok := body[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func hasInputField(fields []string, want string) bool {
+	for _, field := range fields {
+		if field == want {
+			return true
+		}
+	}
+	return false
 }
