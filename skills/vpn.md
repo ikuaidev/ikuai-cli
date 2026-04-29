@@ -9,29 +9,33 @@ description: iKuai VPN — PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard server c
 
 ```bash
 # 服务配置
-ikuai-cli vpn pptp get
-ikuai-cli vpn pptp set --enabled yes --server-ip "10.0.0.1" --server-port 1723 --addr-pool "10.0.0.2-10.0.0.254" --dns1 "114.114.114.114" --dns2 "119.29.29.29" --open-mppe 2 --mtu 1400 --mru 1400
-# 全量更新，需传所有字段
+ikuai-cli vpn pptp get --format json
+ikuai-cli vpn pptp set --enabled no --format json
 
 # 客户端 CRUD
-ikuai-cli vpn pptp clients
-ikuai-cli vpn pptp client-create --name pptp_office --server "vpn.example.com" --username user1 --password "123456" --interface auto
-ikuai-cli vpn pptp client-update <ID> --server "vpn2.example.com"
-ikuai-cli vpn pptp kick <ID>
+ikuai-cli vpn pptp clients --format json
+ikuai-cli vpn pptp client-create --name pptpoffice --server "vpn.example.com" --username user1 --password "123456" --interface auto --enabled no --format json
+ikuai-cli vpn pptp client-get <ID> --format json
+ikuai-cli vpn pptp client-update <ID> --server "vpn2.example.com" --format json
+ikuai-cli vpn pptp client-toggle <ID> --enabled no --format json
+ikuai-cli vpn pptp client-delete <ID> --yes --format json
+ikuai-cli vpn pptp kick <ID> --yes --format json
 ```
 
-L2TP server set 同理：`--enabled`, `--server-ip`, `--server-port`, `--addr-pool`, `--dns1`, `--dns2`, `--mtu`, `--mru`, `--ipsec-secret`, `--leftid`, `--rightid`, `--force-ipsec`（全量更新）。
-L2TP 客户端 name 需以 `l2tp` 开头。
-
-OpenVPN/IKEv2 server set 字段多（含证书），建议用 `--data` 全量传 JSON。
+L2TP 命令同理：`vpn l2tp get/set/clients/client-create/client-get/client-update/client-toggle/client-delete/kick`。L2TP 客户端 name 需以 `l2tp` 开头。
 
 ## OpenVPN
 
 ```bash
-ikuai-cli vpn openvpn get
-ikuai-cli vpn openvpn clients
-ikuai-cli vpn openvpn client-create --name ovpn_office --remote-addr "vpn.example.com" --username user1 --password "123456" --ca "<CA证书>" --interface auto
-ikuai-cli vpn openvpn kick <ID>
+ikuai-cli vpn openvpn get --format json
+ikuai-cli vpn openvpn set --enabled no --format json
+ikuai-cli vpn openvpn clients --format json
+ikuai-cli vpn openvpn client-create --name ovpnoffice --remote-addr "vpn.example.com" --username user1 --password "123456" --ca "<CA证书>" --interface auto --enabled no --format json
+ikuai-cli vpn openvpn client-get <ID> --format json
+ikuai-cli vpn openvpn client-update <ID> --comment "updated" --format json
+ikuai-cli vpn openvpn client-toggle <ID> --enabled no --format json
+ikuai-cli vpn openvpn client-delete <ID> --yes --format json
+ikuai-cli vpn openvpn kick <ID> --yes --format json
 ```
 
 `--ca` 必须传真实 CA 证书内容。
@@ -39,10 +43,15 @@ ikuai-cli vpn openvpn kick <ID>
 ## IKEv2
 
 ```bash
-ikuai-cli vpn ikev2 get
-ikuai-cli vpn ikev2 clients
-ikuai-cli vpn ikev2 client-create --name iked_office --remote-addr "vpn.example.com" --interface auto --left-id "localid" --username user1 --password "123456"
-ikuai-cli vpn ikev2 kick <ID>
+ikuai-cli vpn ikev2 get --format json
+ikuai-cli vpn ikev2 set --enabled no --format json
+ikuai-cli vpn ikev2 clients --format json
+ikuai-cli vpn ikev2 client-create --name ikedoffice --remote-addr "vpn.example.com" --interface auto --left-id "localid" --username user1 --password "123456" --enabled no --format json
+ikuai-cli vpn ikev2 client-get <ID> --format json
+ikuai-cli vpn ikev2 client-update <ID> --comment "updated" --format json
+ikuai-cli vpn ikev2 client-toggle <ID> --enabled no --format json
+ikuai-cli vpn ikev2 client-delete <ID> --yes --format json
+ikuai-cli vpn ikev2 kick <ID> --yes --format json
 ```
 
 name 需以 `iked` 开头，authby=mschapv2 时 username 必填。
@@ -50,25 +59,33 @@ name 需以 `iked` 开头，authby=mschapv2 时 username 必填。
 ## IPSec
 
 ```bash
-ikuai-cli vpn ipsec clients
-ikuai-cli vpn ipsec client-create --name ipsec_site --remote-addr "10.0.0.1" --interface wan1 --left-subnet "192.168.1.0/24" --right-subnet "192.168.2.0/24" --secret "psk123"
+ikuai-cli vpn ipsec clients --format json
+ikuai-cli vpn ipsec client-create --name ipsecsite --remote-addr "10.0.0.1" --interface wan1 --left-subnet "192.168.1.0/24" --right-subnet "192.168.2.0/24" --secret "psk123" --enabled no --format json
+ikuai-cli vpn ipsec client-get <ID> --format json
+ikuai-cli vpn ipsec client-update <ID> --comment "updated" --format json
+ikuai-cli vpn ipsec client-toggle <ID> --enabled no --format json
+ikuai-cli vpn ipsec client-delete <ID> --yes --format json
+ikuai-cli vpn ipsec kick <ID> --yes --format json
 # defaults: keyexchange=ikev2, authby=secret, dpdaction=none, ikelifetime=3, lifetime=1
-ikuai-cli vpn ipsec kick <ID>
 ```
 
 ## WireGuard
 
 ```bash
 # 隧道
-ikuai-cli vpn wireguard list
-ikuai-cli vpn wireguard create --name wg_site --address "10.9.0.1/24" --private-key "<base64>" --public-key "<base64>"
+ikuai-cli vpn wireguard list --format json
+ikuai-cli vpn wireguard create --name wgsite --address "10.9.0.1/24" --interface auto --private-key "<base64>" --public-key "<base64>" --enabled no --format json
 # defaults: interface=auto, port=5000, mtu=1420
-ikuai-cli vpn wireguard get <ID>
-ikuai-cli vpn wireguard toggle <ID> --enabled no
-ikuai-cli vpn wireguard delete <ID>
+ikuai-cli vpn wireguard get <ID> --format json
+ikuai-cli vpn wireguard update <ID> --interface auto --port 5001 --format json
+ikuai-cli vpn wireguard toggle <ID> --enabled no --format json
+ikuai-cli vpn wireguard delete <ID> --yes --format json
 
 # 对端
-ikuai-cli vpn wireguard peers <TUNNEL_ID>
-ikuai-cli vpn wireguard peer-create <TUNNEL_ID> --public-key "<base64>" --allow-ips "10.9.0.2/32" --interface wg0
-ikuai-cli vpn wireguard peer-delete <TUNNEL_ID> <PEER_ID>
+ikuai-cli vpn wireguard peers <TUNNEL_ID> --format json
+ikuai-cli vpn wireguard peer-create <TUNNEL_ID> --public-key "<base64>" --allow-ips "10.9.0.2/32" --interface wgsite --enabled no --format json
+ikuai-cli vpn wireguard peer-get <TUNNEL_ID> <PEER_ID> --format json
+ikuai-cli vpn wireguard peer-update <TUNNEL_ID> <PEER_ID> --interface wgsite --comment "updated" --format json
+ikuai-cli vpn wireguard peer-toggle <TUNNEL_ID> <PEER_ID> --enabled no --format json
+ikuai-cli vpn wireguard peer-delete <TUNNEL_ID> <PEER_ID> --yes --format json
 ```
