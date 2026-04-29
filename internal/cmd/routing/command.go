@@ -19,14 +19,22 @@ var flagDescs = map[string]string{
 	// static / five-tuple shared
 	"dst-addr": "Destination address",
 	"gateway":  "Next-hop gateway IP",
+	"ip-type":  "IP type (4/6)",
 	"netmask":  "Subnet mask",
 	// stream domain
 	"domain": "Domain list (comma-separated)",
 	// stream five-tuple
-	"protocol": "Protocol (tcp/udp/any)",
-	"src-addr": "Source address (comma-separated)",
-	"src-port": "Source port (comma-separated)",
-	"dst-port": "Destination port (comma-separated)",
+	"area-code":    "Destination area code",
+	"dst-addr-inv": "Invert destination address match (0/1)",
+	"dst-port":     "Destination port (comma-separated)",
+	"dst-type":     "Destination type (0=address, 1=area)",
+	"iface-band":   "Bind interface (0/1)",
+	"nexthop":      "Next-hop gateway for LAN forwarding",
+	"protocol":     "Protocol (tcp/udp/any)",
+	"src-addr":     "Source address (comma-separated)",
+	"src-addr-inv": "Invert source address match (0/1)",
+	"src-port":     "Source port (comma-separated)",
+	"type":         "Forwarding type (0=WAN, 1=LAN)",
 	// stream l7
 	"app-proto": "App protocol (comma-separated)",
 	// stream load-balance
@@ -67,12 +75,20 @@ var (
 	}
 
 	fiveTupleFieldMap = map[string]string{
-		"name":      "tagname",
-		"interface": "interface",
-		"protocol":  "protocol",
-		"priority":  "prio",
-		"comment":   "comment",
-		"enabled":   "enabled",
+		"name":         "tagname",
+		"interface":    "interface",
+		"type":         "type",
+		"nexthop":      "nexthop",
+		"protocol":     "protocol",
+		"mode":         "mode",
+		"priority":     "prio",
+		"dst-type":     "dst_type",
+		"area-code":    "area_code",
+		"iface-band":   "iface_band",
+		"src-addr-inv": "src_addr_inv",
+		"dst-addr-inv": "dst_addr_inv",
+		"comment":      "comment",
+		"enabled":      "enabled",
 	}
 	fiveTupleAddrFields = map[string]string{
 		"src-addr": "src_addr",
@@ -103,11 +119,13 @@ var (
 	}
 
 	l7FieldMap = map[string]string{
-		"name":      "tagname",
-		"interface": "interface",
-		"priority":  "prio",
-		"comment":   "comment",
-		"enabled":   "enabled",
+		"name":       "tagname",
+		"interface":  "interface",
+		"mode":       "mode",
+		"priority":   "prio",
+		"iface-band": "iface_band",
+		"comment":    "comment",
+		"enabled":    "enabled",
 	}
 	l7AddrFields = map[string]string{
 		"app-proto": "app_proto",
@@ -132,6 +150,7 @@ var (
 	loadBalanceFieldMap = map[string]string{
 		"name":      "tagname",
 		"interface": "interface",
+		"mode":      "mode",
 		"weight":    "weight",
 		"isp-name":  "isp_name",
 		"comment":   "comment",
@@ -228,6 +247,7 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 		"interface": "interface",
 		"dst-addr":  "dst_addr",
 		"gateway":   "gateway",
+		"ip-type":   "ip_type",
 		"netmask":   "netmask",
 		"priority":  "prio",
 		"comment":   "comment",
@@ -261,7 +281,7 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 	}
 	cliapp.AddListFlags(listCmd)
 
-	createCmd := writeCmd(app, "create", "Create a static route", false, staticFieldMap, nil, staticDefaults,
+	createCmd := writeCmd(app, "create", "Create a static route", false, staticFieldMap, nil, staticDefaults, "",
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/routing/static-routes", body)
 		})
@@ -275,7 +295,8 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 			return origRunE(cmd, args)
 		}
 	}
-	updateCmd := writeCmd(app, "update ID", "Update a static route", true, staticFieldMap, nil, nil,
+	getCmd := getByIDCmd(app, "get ID", "Get a static route", "/routing/static-routes/")
+	updateCmd := writeCmd(app, "update ID", "Update a static route", true, staticFieldMap, nil, nil, "routing/static-routes",
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/routing/static-routes/"+id, body)
 		})
@@ -283,9 +304,10 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 	toggleFieldMap := map[string]string{"enabled": "enabled"}
 	group.AddCommand(
 		listCmd,
+		getCmd,
 		createCmd,
 		updateCmd,
-		writeCmd(app, "toggle ID", "Enable/disable a static route", true, toggleFieldMap, nil, nil,
+		writeCmd(app, "toggle ID", "Enable/disable a static route", true, toggleFieldMap, nil, nil, "",
 			func(body interface{}, id string) (json.RawMessage, error) {
 				return app.APIClient.Patch(cliapp.APIBase+"/routing/static-routes/"+id, body)
 			}),
@@ -327,7 +349,7 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 	}
 	cliapp.AddListFlags(listCmd)
 
-	createCmd := writeCmd(app, "create", "Create a "+use+" rule", false, opts.fieldMap, opts.addrFields, opts.createDefaults,
+	createCmd := writeCmd(app, "create", "Create a "+use+" rule", false, opts.fieldMap, opts.addrFields, opts.createDefaults, "",
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 		})
@@ -341,24 +363,45 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			return origRunE(cmd, args)
 		}
 	}
-	updateCmd := writeCmd(app, "update ID", "Update a "+use+" rule", true, opts.fieldMap, opts.addrFields, nil,
+	getCmd := getByIDCmd(app, "get ID", "Get a "+use+" rule", "/"+apiPath+"/")
+	updateCmd := writeCmd(app, "update ID", "Update a "+use+" rule", true, opts.fieldMap, opts.addrFields, nil, apiPath,
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
 		})
 	toggleFieldMap := map[string]string{"enabled": "enabled"}
-	toggleCmd := writeCmd(app, "toggle ID", "Enable/disable a "+use+" rule", true, toggleFieldMap, nil, nil,
+	toggleCmd := writeCmd(app, "toggle ID", "Enable/disable a "+use+" rule", true, toggleFieldMap, nil, nil, "",
 		func(body interface{}, id string) (json.RawMessage, error) {
 			return app.APIClient.Patch(cliapp.APIBase+"/"+apiPath+"/"+id, body)
 		})
 
 	grp.AddCommand(
 		listCmd,
+		getCmd,
 		createCmd,
 		updateCmd,
 		toggleCmd,
 		deleteByIDCmd(app, "delete ID", "Delete a "+use+" rule", "/"+apiPath+"/"),
 	)
 	return grp
+}
+
+func getByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			raw, err := app.APIClient.Get(cliapp.APIBase+apiPath+args[0], nil)
+			if err != nil {
+				return err
+			}
+			app.PrintRaw(raw)
+			return nil
+		},
+	}
 }
 
 func deleteByIDCmd(app *cliapp.Runtime, use, short, apiPath string) *cobra.Command {
@@ -394,7 +437,7 @@ type callWithBody func(body interface{}, id string) (json.RawMessage, error)
 
 // writeCmd builds a create/update/toggle command with semantic flags, addrFields, and defaults.
 // --data is kept as escape hatch for complex cases.
-func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[string]string, addrFields map[string]string, defaults map[string]interface{}, fn callWithBody) *cobra.Command {
+func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[string]string, addrFields map[string]string, defaults map[string]interface{}, fullUpdatePath string, fn callWithBody) *cobra.Command {
 	c := &cobra.Command{Use: use, Short: short}
 	if use == "create" {
 		c.Aliases = []string{"new"}
@@ -467,6 +510,12 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 				"object": []interface{}{},
 			}
 		}
+		if withID && fullUpdatePath != "" {
+			body, err = fullUpdateBody(app, fullUpdatePath, args[0], body)
+			if err != nil {
+				return err
+			}
+		}
 		id := ""
 		if withID {
 			id = args[0]
@@ -479,4 +528,89 @@ func writeCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap map[
 		return nil
 	}
 	return c
+}
+
+func fullUpdateBody(app *cliapp.Runtime, apiPath, id string, updates map[string]interface{}) (map[string]interface{}, error) {
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/"+apiPath+"/"+id, nil)
+	if err != nil {
+		return nil, err
+	}
+	current, err := inputBodyFromGet(raw)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	return current, nil
+}
+
+func inputBodyFromGet(raw json.RawMessage) (map[string]interface{}, error) {
+	var value interface{}
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, err
+	}
+	body, ok := findRuleObject(value)
+	if !ok {
+		return nil, &cliapp.ValidationError{Message: "unexpected routing get response"}
+	}
+	result := map[string]interface{}{}
+	for k, v := range body {
+		if k == "id" || strings.HasSuffix(k, "_int") {
+			continue
+		}
+		result[k] = v
+	}
+	normalizeInputBody(result)
+	return result, nil
+}
+
+func findRuleObject(value interface{}) (map[string]interface{}, bool) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if _, ok := typed["tagname"]; ok {
+			return typed, true
+		}
+		for _, key := range []string{"data", "results"} {
+			if nested, ok := typed[key]; ok {
+				if found, ok := findRuleObject(nested); ok {
+					return found, true
+				}
+			}
+		}
+	case []interface{}:
+		if len(typed) == 0 {
+			return nil, false
+		}
+		return findRuleObject(typed[0])
+	}
+	return nil, false
+}
+
+func normalizeInputBody(value interface{}) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		for k, child := range typed {
+			if (k == "custom" || k == "object") && emptyMap(child) {
+				typed[k] = []interface{}{}
+				continue
+			}
+			normalizeInputBody(child)
+		}
+	case []interface{}:
+		for _, child := range typed {
+			normalizeInputBody(child)
+		}
+	}
+}
+
+func emptyMap(value interface{}) bool {
+	if typed, ok := value.(map[string]interface{}); ok {
+		return len(typed) == 0
+	}
+	return false
 }
