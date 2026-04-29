@@ -1,7 +1,6 @@
 package objects
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
@@ -96,6 +95,16 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 			if f := cmd.Flags().Lookup("value"); f != nil && f.Changed && valueKey != "" {
 				body["group_value"] = buildGroupValue(f.Value.String(), valueKey)
 			}
+			if valueKey == "" {
+				if !hasGroupValue(body) {
+					if err := cliapp.RequireFlags(cmd, requiredTimeFlags(cmd)...); err != nil {
+						return err
+					}
+				}
+				if timeFlagsChanged(cmd) {
+					body["group_value"] = buildTimeGroupValue(cmd)
+				}
+			}
 			raw, err := app.APIClient.Post(cliapp.APIBase+"/"+apiPath, body)
 			if err != nil {
 				return err
@@ -110,6 +119,7 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 		createCmd.Flags().String("value", "", "Comma-separated values (e.g. 1.2.3.4,5.6.7.8/24)")
 		cliapp.MarkFlagsRequired(createCmd, "name", "value")
 	} else {
+		addTimeFlags(createCmd)
 		cliapp.MarkFlagsRequired(createCmd, "name")
 	}
 
@@ -129,6 +139,9 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 			if f := cmd.Flags().Lookup("value"); f != nil && f.Changed && valueKey != "" {
 				body["group_value"] = buildGroupValue(f.Value.String(), valueKey)
 			}
+			if valueKey == "" && timeFlagsChanged(cmd) {
+				body["group_value"] = buildTimeGroupValue(cmd)
+			}
 			raw, err := app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+args[0], body)
 			if err != nil {
 				return err
@@ -141,11 +154,9 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 	updateCmd.Flags().String("name", "", "Object group name")
 	if valueKey != "" {
 		updateCmd.Flags().String("value", "", "Comma-separated values")
+	} else {
+		addTimeFlags(updateCmd)
 	}
-
-	toggleCmd := dataCommandWithID(app, "toggle ID", "Enable/disable a "+name+" object (--data JSON)", func(body interface{}, id string) (json.RawMessage, error) {
-		return app.APIClient.Patch(cliapp.APIBase+"/"+apiPath+"/"+id, body)
-	})
 
 	deleteCmd := &cobra.Command{
 		Use:     "delete ID",
@@ -192,7 +203,7 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 	refsCmd.Flags().String("group-name", "", "Object group name to query references for (required)")
 	_ = refsCmd.MarkFlagRequired("group-name")
 
-	group.AddCommand(listCmd, getCmd, createCmd, updateCmd, toggleCmd, deleteCmd, refsCmd)
+	group.AddCommand(listCmd, getCmd, createCmd, updateCmd, deleteCmd, refsCmd)
 	return group
 }
 
@@ -210,53 +221,51 @@ func buildGroupValue(csv, key string) []interface{} {
 	return result
 }
 
-type callWithBody func(body interface{}, id string) (json.RawMessage, error)
-
-func dataCommandWithID(app *cliapp.Runtime, use, short string, fn callWithBody) *cobra.Command {
-	return dataCommandImpl(app, use, short, true, fn)
+func addTimeFlags(cmd *cobra.Command) {
+	cmd.Flags().String("type", "", "Time object type (weekly/date)")
+	cmd.Flags().String("weekdays", "", "Weekly days, e.g. 12345 or 1234567")
+	cmd.Flags().String("start-time", "", "Start time, e.g. 00:00 or 2026-05-01T08:00")
+	cmd.Flags().String("end-time", "", "End time, e.g. 20:00 or 2026-05-10T08:00")
+	cmd.Flags().String("comment", "", "Object value comment")
 }
 
-func dataCommandImpl(app *cliapp.Runtime, use, short string, withID bool, fn callWithBody) *cobra.Command {
-	c := &cobra.Command{
-		Use:   use,
-		Short: short,
+func requiredTimeFlags(cmd *cobra.Command) []string {
+	required := []string{"type", "start-time", "end-time"}
+	if typ, _ := cmd.Flags().GetString("type"); typ == "weekly" {
+		required = append(required, "weekdays")
 	}
-	if use == "create" {
-		c.Aliases = []string{"new"}
+	return required
+}
+
+func timeFlagsChanged(cmd *cobra.Command) bool {
+	for _, name := range []string{"type", "weekdays", "start-time", "end-time", "comment"} {
+		if f := cmd.Flags().Lookup(name); f != nil && f.Changed {
+			return true
+		}
 	}
-	if withID {
-		c.Args = cobra.ExactArgs(1)
+	return false
+}
+
+func hasGroupValue(body map[string]interface{}) bool {
+	_, ok := body["group_value"]
+	return ok
+}
+
+func buildTimeGroupValue(cmd *cobra.Command) []interface{} {
+	value := map[string]interface{}{}
+	for flag, field := range map[string]string{
+		"type":       "type",
+		"weekdays":   "weekdays",
+		"start-time": "start_time",
+		"end-time":   "end_time",
+		"comment":    "comment",
+	} {
+		if f := cmd.Flags().Lookup(flag); f != nil && f.Changed {
+			v := strings.TrimSpace(f.Value.String())
+			if v != "" {
+				value[field] = v
+			}
+		}
 	}
-	isToggle := strings.HasPrefix(use, "toggle")
-	if isToggle {
-		cliapp.AddEnabledFlag(c)
-	}
-	c.RunE = func(cmd *cobra.Command, args []string) error {
-		if err := app.RequireAuth(); err != nil {
-			return err
-		}
-		data, _ := cmd.Flags().GetString("data")
-		var body interface{}
-		var err error
-		if isToggle {
-			body, err = cliapp.MergeDataWithFlags(data, cmd, map[string]string{"enabled": "enabled"})
-		} else {
-			body, err = cliapp.ParseJSON(data)
-		}
-		if err != nil {
-			return err
-		}
-		id := ""
-		if withID {
-			id = args[0]
-		}
-		raw, err := fn(body, id)
-		if err != nil {
-			return err
-		}
-		app.PrintRaw(raw)
-		return nil
-	}
-	c.Flags().String("data", "{}", "JSON body")
-	return c
+	return []interface{}{value}
 }

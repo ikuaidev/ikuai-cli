@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -104,6 +105,70 @@ func TestIPCreateSendsExpectedJSONBody(t *testing.T) {
 	want := "{\"message\":\"created\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestTimeCreateSendsSemanticFlagsAsGroupValue(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-obj"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodPost {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodPost)
+			}
+			if req.URL.String() != "https://router.local/api/v4.0/time-objects" {
+				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/time-objects")
+			}
+
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				t.Fatalf("ReadAll() error = %v", err)
+			}
+			bs := string(body)
+			for _, want := range []string{
+				`"group_name":"office"`,
+				`"type":"weekly"`,
+				`"weekdays":"12345"`,
+				`"start_time":"09:00"`,
+				`"end_time":"18:00"`,
+				`"comment":"work"`,
+			} {
+				if !bytes.Contains(body, []byte(want)) {
+					t.Fatalf("body missing %s: %s", want, bs)
+				}
+			}
+
+			return jsonResponse(`{"code":0,"message":"created","data":null}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"time", "create", "--name", "office", "--type", "weekly", "--weekdays", "12345", "--start-time", "09:00", "--end-time", "18:00", "--comment", "work"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+}
+
+func TestObjectCommandsDoNotExposeUnsupportedToggle(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	cmd := New(app)
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"ip", "--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	if strings.Contains(out.String(), "toggle") {
+		t.Fatalf("help unexpectedly exposes toggle: %s", out.String())
 	}
 }
 
