@@ -44,54 +44,54 @@ Common flags for `cpu`, `memory`, `disk`, `temp`, `terminals`, `connections`, `n
 ## Auth
 
 ```bash
-ikuai-cli auth set-url https://192.168.1.1   # Set router base URL
-ikuai-cli auth set-token <your-api-token>    # Set API Bearer token
-ikuai-cli auth status                        # Show session info
-ikuai-cli auth status --format json          # Compact JSON
-ikuai-cli auth clear                         # Clear host + token
+ikuai-cli auth set-url https://192.168.1.1
+ikuai-cli auth set-token <your-api-token>
+ikuai-cli auth status
+ikuai-cli auth status --format json
+ikuai-cli auth clear
 ```
 
 ## Monitor
 
 ```bash
-ikuai-cli monitor system                     # CPU, memory, uptime, WAN IP
-ikuai-cli monitor cpu                        # CPU load (default: last hour, avg)
+ikuai-cli monitor system
+ikuai-cli monitor cpu
 ikuai-cli monitor cpu --time-range day --aggregate max
-ikuai-cli monitor memory                     # Memory usage history
-ikuai-cli monitor disk                       # Disk usage history
-ikuai-cli monitor temp                       # CPU temperature history
-ikuai-cli monitor terminals                  # Terminal count history
-ikuai-cli monitor connections                # Connection count history
-ikuai-cli monitor network-load               # Network load history
-ikuai-cli monitor downstream                 # Downstream device traffic
-ikuai-cli monitor interfaces                 # WAN interface status
-ikuai-cli monitor interfaces-traffic         # Per-interface traffic
-ikuai-cli monitor interfaces-config          # Interface config snapshot
-ikuai-cli monitor interfaces-physical        # Physical NIC info
-ikuai-cli monitor interfaces-traffic-v6      # IPv6 interface traffic
-ikuai-cli monitor clients-online             # Online IPv4 clients
-ikuai-cli monitor clients-offline            # Offline IPv4 clients
-ikuai-cli monitor clients-ip6-online         # Online IPv6 clients
-ikuai-cli monitor clients-ip6-offline        # Offline IPv6 clients
-ikuai-cli monitor traffic-summary            # Per-client traffic summary
+ikuai-cli monitor memory
+ikuai-cli monitor disk
+ikuai-cli monitor temp
+ikuai-cli monitor terminals
+ikuai-cli monitor connections
+ikuai-cli monitor network-load
+ikuai-cli monitor downstream
+ikuai-cli monitor interfaces
+ikuai-cli monitor interfaces-traffic
+ikuai-cli monitor interfaces-config
+ikuai-cli monitor interfaces-physical
+ikuai-cli monitor interfaces-traffic-v6
+ikuai-cli monitor clients-online
+ikuai-cli monitor clients-offline
+ikuai-cli monitor clients-ip6-online
+ikuai-cli monitor clients-ip6-offline
+ikuai-cli monitor traffic-summary
 ikuai-cli monitor traffic-load --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
 ikuai-cli monitor client-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
 ikuai-cli monitor client-protocols-history --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
 ikuai-cli monitor client-app-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor protocols                  # Protocol distribution
-ikuai-cli monitor protocols-history          # Protocol history
-ikuai-cli monitor app-traffic-summary        # App traffic summary
-ikuai-cli monitor app-protocols-load         # Current app protocol load
+ikuai-cli monitor protocols
+ikuai-cli monitor protocols-history
+ikuai-cli monitor app-traffic-summary
+ikuai-cli monitor app-protocols-load
 ikuai-cli monitor app-protocols-history --appids 2580003,2580004
 ikuai-cli monitor app-protocols-terminals --appid 2580003
-ikuai-cli monitor wireless-stats             # Wireless statistics
-ikuai-cli monitor wireless-score             # Wireless quality score
-ikuai-cli monitor wireless-traffic           # Wireless traffic
-ikuai-cli monitor ssid-clients               # SSID client distribution
-ikuai-cli monitor channel-clients            # Channel client distribution
-ikuai-cli monitor cameras                    # IP camera list
-ikuai-cli monitor flow-shunting              # Traffic shunting stats
-ikuai-cli monitor switch                     # Switch port monitoring
+ikuai-cli monitor wireless-stats
+ikuai-cli monitor wireless-score
+ikuai-cli monitor wireless-traffic
+ikuai-cli monitor ssid-clients
+ikuai-cli monitor channel-clients
+ikuai-cli monitor cameras
+ikuai-cli monitor flow-shunting
+ikuai-cli monitor switch
 ```
 
 ## Network
@@ -135,7 +135,7 @@ ikuai-cli users packages list
 ## System
 
 ```bash
-ikuai-cli system get                         # System config
+ikuai-cli system get
 ikuai-cli system set --hostname "ikuai-gw"
 ikuai-cli system schedules list
 ikuai-cli system schedules create --name "NightReboot" --time "04:00"
@@ -198,7 +198,7 @@ ikuai-cli qos mac list
 
 ```bash
 ikuai-cli log system list --page 1
-ikuai-cli log system list --human-time       # Human-readable timestamps
+ikuai-cli log system list --human-time
 ikuai-cli log arp list
 ikuai-cli log auth list
 ikuai-cli log dhcp list
@@ -254,21 +254,29 @@ ikuai-cli auth-server set --data '{"enabled":true}'
 ## Objects
 
 ```bash
-ikuai-cli objects ip list
-ikuai-cli objects mac list
-ikuai-cli objects port list
-ikuai-cli objects domain list
-ikuai-cli objects time list
+ikuai-cli objects ip list --format json
+ikuai-cli objects ip create --name servers --value 192.168.1.10,192.168.1.11 --format json
+ikuai-cli objects ip get <ID> --format json
+ikuai-cli objects ip update <ID> --name servers_v2 --value 192.168.1.12 --format json
+ikuai-cli objects ip refs --group-name servers_v2 --format json
+ikuai-cli objects ip delete <ID> --yes --format json
+ikuai-cli objects ip6 list --format json
+ikuai-cli objects mac list --format json
+ikuai-cli objects port list --format json
+ikuai-cli objects proto list --format json
+ikuai-cli objects domain list --format json
+ikuai-cli objects time create --name office --type weekly --weekdays 12345 --start-time 09:00 --end-time 18:00 --format json
+ikuai-cli objects time list --format json
 ```
 
 ## Other
 
 ```bash
-ikuai-cli version                            # Build info
+ikuai-cli version
 ikuai-cli version --format json
-ikuai-cli completion bash                    # Shell completion
+ikuai-cli completion bash
 ikuai-cli completion zsh
 ikuai-cli completion fish
 ikuai-cli completion powershell
-ikuai-cli repl                               # Interactive shell
+ikuai-cli repl
 ```
