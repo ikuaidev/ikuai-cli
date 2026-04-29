@@ -47,7 +47,6 @@ Common flags for `cpu`, `memory`, `disk`, `temp`, `terminals`, `connections`, `n
 ikuai-cli auth set-url https://192.168.1.1
 ikuai-cli auth set-token <your-api-token>
 ikuai-cli auth status
-ikuai-cli auth status --format json
 ikuai-cli auth clear
 ```
 
@@ -125,7 +124,7 @@ ikuai-cli network vlan create --name "IoT" --vlan-id 100 --interface lan1
 ## Users
 
 ```bash
-ikuai-cli users accounts list --format json
+ikuai-cli users accounts list
 ikuai-cli users accounts create --data '{"username":"guest","password":"guest123"}'
 ikuai-cli users online
 ikuai-cli users kick --data '{"id":1}'
@@ -181,22 +180,54 @@ ikuai-cli vpn wireguard peers
 
 ```bash
 ikuai-cli routing static list
+ikuai-cli routing static get <ID>
+ikuai-cli routing static create --name to_lan2 --dst-addr 10.10.10.0 --gateway 10.66.0.1 --netmask 255.255.255.0 --interface wan1
+ikuai-cli routing static update <ID> --name to_lan2_bak --priority 10
+ikuai-cli routing static toggle <ID> --enabled no
+ikuai-cli routing static delete <ID> --yes
 ikuai-cli routing stream domain list
+ikuai-cli routing stream domain get <ID>
+ikuai-cli routing stream domain create --name baidu --domain www.baidu.com,baidu.com --interface wan2
+ikuai-cli routing stream domain update <ID> --name baidu_wan1 --interface wan1
+ikuai-cli routing stream domain toggle <ID> --enabled no
+ikuai-cli routing stream domain delete <ID> --yes
 ikuai-cli routing stream five-tuple list
+ikuai-cli routing stream five-tuple get <ID>
+ikuai-cli routing stream five-tuple create --name web_wan2 --protocol tcp --dst-port 80,443 --interface wan2
+ikuai-cli routing stream five-tuple update <ID> --dst-port 8080,8443
+ikuai-cli routing stream five-tuple toggle <ID> --enabled no
+ikuai-cli routing stream five-tuple delete <ID> --yes
 ikuai-cli routing stream l7 list
+ikuai-cli routing stream l7 get <ID>
+ikuai-cli routing stream l7 create --name dns_wan2 --app-proto DNS --interface wan2
+ikuai-cli routing stream l7 update <ID> --name dns_wan1 --interface wan1
+ikuai-cli routing stream l7 toggle <ID> --enabled no
+ikuai-cli routing stream l7 delete <ID> --yes
+ikuai-cli routing stream load-balance list
+ikuai-cli routing stream load-balance get <ID>
+ikuai-cli routing stream load-balance create --name lb_wan1 --interface wan1 --mode 0 --weight 1 --isp-name all
+ikuai-cli routing stream load-balance update <ID> --weight 2
+ikuai-cli routing stream load-balance toggle <ID> --enabled no
+ikuai-cli routing stream load-balance delete <ID> --yes
+ikuai-cli routing stream updown list
+ikuai-cli routing stream updown get <ID>
+ikuai-cli routing stream updown create --name split --upiface wan1 --downiface wan2
+ikuai-cli routing stream updown update <ID> --protocol tcp --dst-port 80,443
+ikuai-cli routing stream updown toggle <ID> --enabled no
+ikuai-cli routing stream updown delete <ID> --yes
 ```
 
 ## QoS
 
 ```bash
-ikuai-cli qos ip list --format json
-ikuai-cli qos ip create --name limit100 --ip-addr 192.168.1.100 --interface wan1 --upload 1000 --download 1000 --format json
-ikuai-cli qos ip update <ID> --name limit100u --upload 1200 --download 1300 --format json
-ikuai-cli qos ip toggle <ID> --enabled no --format json
-ikuai-cli qos ip delete <ID> --yes --format json
-ikuai-cli qos mac list --format json
-ikuai-cli qos mac create --name limitmac --mac-addr 00:11:22:33:44:55 --interface wan1 --upload 500 --download 500 --format json
-ikuai-cli qos mac delete <ID> --yes --format json
+ikuai-cli qos ip list
+ikuai-cli qos ip create --name limit100 --ip-addr 192.168.1.100 --interface wan1 --upload 1000 --download 1000
+ikuai-cli qos ip update <ID> --name limit100u --upload 1200 --download 1300
+ikuai-cli qos ip toggle <ID> --enabled no
+ikuai-cli qos ip delete <ID> --yes
+ikuai-cli qos mac list
+ikuai-cli qos mac create --name limitmac --mac-addr 00:11:22:33:44:55 --interface wan1 --upload 500 --download 500
+ikuai-cli qos mac delete <ID> --yes
 ```
 
 ## Log
@@ -259,26 +290,25 @@ ikuai-cli auth-server set --data '{"enabled":true}'
 ## Objects
 
 ```bash
-ikuai-cli objects ip list --format json
-ikuai-cli objects ip create --name servers --value 192.168.1.10,192.168.1.11 --format json
-ikuai-cli objects ip get <ID> --format json
-ikuai-cli objects ip update <ID> --name servers_v2 --value 192.168.1.12 --format json
-ikuai-cli objects ip refs --group-name servers_v2 --format json
-ikuai-cli objects ip delete <ID> --yes --format json
-ikuai-cli objects ip6 list --format json
-ikuai-cli objects mac list --format json
-ikuai-cli objects port list --format json
-ikuai-cli objects proto list --format json
-ikuai-cli objects domain list --format json
-ikuai-cli objects time create --name office --type weekly --weekdays 12345 --start-time 09:00 --end-time 18:00 --format json
-ikuai-cli objects time list --format json
+ikuai-cli objects ip list
+ikuai-cli objects ip create --name servers --value 192.168.1.10,192.168.1.11
+ikuai-cli objects ip get <ID>
+ikuai-cli objects ip update <ID> --name servers_v2 --value 192.168.1.12
+ikuai-cli objects ip refs --group-name servers_v2
+ikuai-cli objects ip delete <ID> --yes
+ikuai-cli objects ip6 list
+ikuai-cli objects mac list
+ikuai-cli objects port list
+ikuai-cli objects proto list
+ikuai-cli objects domain list
+ikuai-cli objects time create --name office --type weekly --weekdays 12345 --start-time 09:00 --end-time 18:00
+ikuai-cli objects time list
 ```
 
 ## Other
 
 ```bash
 ikuai-cli version
-ikuai-cli version --format json
 ikuai-cli completion bash
 ikuai-cli completion zsh
 ikuai-cli completion fish
