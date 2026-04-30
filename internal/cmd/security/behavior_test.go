@@ -179,6 +179,32 @@ func TestTerminalsDoesNotExposeToggle(t *testing.T) {
 	}
 }
 
+func TestTerminalsDoesNotExposeUnsupportedEnabledFlag(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "tok"}
+
+	cmd := New(app)
+	createCmd, _, err := cmd.Find([]string{"terminals", "create"})
+	if err != nil {
+		t.Fatalf("Find terminals create error = %v", err)
+	}
+	if flag := createCmd.Flags().Lookup("enabled"); flag != nil {
+		t.Fatal("terminals create should not expose --enabled")
+	}
+
+	updateCmd, _, err := cmd.Find([]string{"terminals", "update"})
+	if err != nil {
+		t.Fatalf("Find terminals update error = %v", err)
+	}
+	if flag := updateCmd.Flags().Lookup("enabled"); flag != nil {
+		t.Fatal("terminals update should not expose --enabled")
+	}
+}
+
 func TestACLCreateMissingRequiredFlags(t *testing.T) {
 	t.Parallel()
 	var out bytes.Buffer
