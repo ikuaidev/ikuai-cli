@@ -32,8 +32,11 @@ func TestOpenVPNClientsBuildExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "2" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "2")
 			}
-			if q.Get("page_size") != "16" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "16")
+			if q.Get("limit") != "16" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "16")
+			}
+			if q.Get("page_size") != "" {
+				t.Fatalf("page_size = %q, want empty", q.Get("page_size"))
 			}
 			if q.Get("filter") != "enabled==yes" {
 				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==yes")
@@ -44,6 +47,12 @@ func TestOpenVPNClientsBuildExpectedQueryParams(t *testing.T) {
 			if q.Get("order_by") != "username" {
 				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "username")
 			}
+			if q.Get("key") != "name,username" {
+				t.Fatalf("key = %q, want %q", q.Get("key"), "name,username")
+			}
+			if q.Get("pattern") != "ovpn" {
+				t.Fatalf("pattern = %q, want %q", q.Get("pattern"), "ovpn")
+			}
 			if got := req.Header.Get("Authorization"); got != "Bearer token-vpn" {
 				t.Fatalf("Authorization = %q, want %q", got, "Bearer token-vpn")
 			}
@@ -52,7 +61,7 @@ func TestOpenVPNClientsBuildExpectedQueryParams(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"openvpn", "clients", "--page", "2", "--page-size", "16", "--filter", "enabled==yes", "--order", "asc", "--order-by", "username"})
+	cmd.SetArgs([]string{"openvpn", "clients", "--page", "2", "--page-size", "16", "--filter", "enabled==yes", "--order", "asc", "--order-by", "username", "--key", "name,username", "--pattern", "ovpn"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -61,6 +70,24 @@ func TestOpenVPNClientsBuildExpectedQueryParams(t *testing.T) {
 	want := `{"items":[]}` + "\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestVPNListExposesYamlSearchParameters(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+
+	cmd := New(app)
+	clientsCmd, _, err := cmd.Find([]string{"pptp", "clients"})
+	if err != nil {
+		t.Fatalf("Find() error = %v", err)
+	}
+	for _, name := range []string{"page", "page-size", "filter", "order", "order-by", "key", "pattern"} {
+		if clientsCmd.Flags().Lookup(name) == nil {
+			t.Fatalf("expected flag %q to exist", name)
+		}
 	}
 }
 

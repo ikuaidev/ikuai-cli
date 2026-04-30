@@ -182,6 +182,7 @@ ikuai-cli security secondary-route-set --ttl-num 21
 ```bash
 ikuai-cli vpn pptp get
 ikuai-cli vpn pptp clients
+ikuai-cli vpn pptp clients --key name --pattern pptpoffice
 ikuai-cli vpn pptp client-create --name pptpoffice --server vpn.example.com --username user1 --password 123456 --interface auto --enabled no
 ikuai-cli vpn pptp client-get <ID>
 ikuai-cli vpn pptp client-update <ID> --comment updated
@@ -190,19 +191,24 @@ ikuai-cli vpn pptp client-delete <ID> --yes
 ikuai-cli vpn l2tp get
 ikuai-cli vpn l2tp clients
 ikuai-cli vpn openvpn get
+ikuai-cli vpn openvpn clients --key name --pattern ovpnoffice
 ikuai-cli vpn openvpn client-create --name ovpnoffice --remote-addr vpn.example.com --username user1 --password 123456 --ca "<CA证书>" --interface auto --enabled no
 ikuai-cli vpn ikev2 get
+ikuai-cli vpn ikev2 clients --key name --pattern ikedoffice
 ikuai-cli vpn ikev2 client-create --name ikedoffice --remote-addr vpn.example.com --interface auto --left-id localid --username user1 --password 123456 --enabled no
 ikuai-cli vpn ipsec clients
+ikuai-cli vpn ipsec clients --key name --pattern ipsecsite
 ikuai-cli vpn ipsec client-create --name ipsecsite --remote-addr 10.0.0.1 --interface wan1 --left-subnet 192.168.1.0/24 --right-subnet 192.168.2.0/24 --secret psk123 --enabled no
 ikuai-cli vpn ipsec client-get <ID>
 ikuai-cli vpn ipsec client-update <ID> --comment updated
 ikuai-cli vpn ipsec client-toggle <ID> --enabled no
 ikuai-cli vpn ipsec client-delete <ID> --yes
 ikuai-cli vpn wireguard list
+ikuai-cli vpn wireguard list --key name --pattern wgsite
 ikuai-cli vpn wireguard create --name wgsite --address 10.9.0.1/24 --interface auto --private-key "<base64>" --public-key "<base64>" --enabled no
 ikuai-cli vpn wireguard update <ID> --interface auto --port 5001
 ikuai-cli vpn wireguard peers <ID>
+ikuai-cli vpn wireguard peers <ID> --key interface --pattern wgsite
 ikuai-cli vpn wireguard peer-create <ID> --public-key "<base64>" --allow-ips 10.9.0.2/32 --interface wgsite --enabled no
 ikuai-cli vpn wireguard peer-get <ID> <PEER_ID>
 ikuai-cli vpn wireguard peer-update <ID> <PEER_ID> --interface wgsite --comment updated
