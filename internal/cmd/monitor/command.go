@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
 	"github.com/spf13/cobra"
@@ -299,7 +300,7 @@ func monitorAppTrafficSummaryCmd(app *cliapp.Runtime) *cobra.Command {
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			app.DefaultColumns = []string{"id", "appname", "appname_level1", "appname_level2", "total_up", "total_down", "total", "appid"}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/app-traffic-summary",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -350,9 +351,14 @@ func monitorAppProtocolsHistoryCmd(app *cliapp.Runtime) *cobra.Command {
 			}
 			app.DefaultColumns = []string{"id", "appname", "timestamp", "upload", "download", "total"}
 			appids, _ := cmd.Flags().GetString("appids")
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/app-protocols/history-load", map[string]string{
-				"appids": appids,
-			})
+			params := map[string]string{"appids": appids}
+			if starttime, _ := cmd.Flags().GetInt64("starttime"); starttime > 0 {
+				params["starttime"] = strconv.FormatInt(starttime, 10)
+			}
+			if stoptime, _ := cmd.Flags().GetInt64("stoptime"); stoptime > 0 {
+				params["stoptime"] = strconv.FormatInt(stoptime, 10)
+			}
+			raw, err := app.APIClient.Get(cliapp.APIBase+"/monitoring/app-protocols/history-load", params)
 			if err != nil {
 				return err
 			}
@@ -361,6 +367,8 @@ func monitorAppProtocolsHistoryCmd(app *cliapp.Runtime) *cobra.Command {
 		},
 	}
 	c.Flags().String("appids", "", "App protocol IDs, comma-separated (required, e.g. 2580003,2580004)")
+	c.Flags().Int64("starttime", 0, "Start Unix timestamp")
+	c.Flags().Int64("stoptime", 0, "Stop Unix timestamp")
 	_ = c.MarkFlagRequired("appids")
 	return c
 }

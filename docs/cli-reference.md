@@ -81,7 +81,7 @@ ikuai-cli monitor protocols
 ikuai-cli monitor protocols-history
 ikuai-cli monitor app-traffic-summary
 ikuai-cli monitor app-protocols-load
-ikuai-cli monitor app-protocols-history --appids 2580003,2580004
+ikuai-cli monitor app-protocols-history --appids 2580003,2580004 --starttime 1773215100 --stoptime 1773218700
 ikuai-cli monitor app-protocols-terminals --appid 2580003
 ikuai-cli monitor wireless-stats
 ikuai-cli monitor wireless-score
