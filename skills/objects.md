@@ -11,8 +11,8 @@ description: iKuai network objects — IP, IPv6, MAC, port, protocol, domain, ti
 
 ```bash
 # List
-ikuai-cli objects ip list --format json
-ikuai-cli objects mac list --format json
+ikuai-cli objects ip list --page 1 --page-size 20 --format json
+ikuai-cli objects mac list --page 1 --page-size 20 --format json
 
 # Create（--value 逗号分隔，自动转为 group_value 数组）
 ikuai-cli objects ip create --name "servers" --value "192.168.1.10,192.168.1.11" --format json
@@ -34,5 +34,7 @@ ikuai-cli objects ip delete <ID> --yes --format json
 # 查看引用该对象的规则
 ikuai-cli objects ip refs --group-name "servers" --format json
 ```
+
+List 仅支持 `--page/--page-size`；不支持 `--filter`、`--order`、`--order-by`。
 
 复杂对象内容仍可用 `--data` 传完整 JSON body。

@@ -17,16 +17,20 @@ ikuai-cli <resource> <action> [args] [flags]
     --human-time               # Convert timestamps to human-readable local time
 ```
 
-## List Flags
+## Common List Flags
 
-Common flags for all `list` commands:
+Most `list` commands support:
 
 ```bash
 -p, --page INT          # Page number (default: 1)
-    --page-size INT     # Items per page (default: 100)
--L, --limit INT         # Total items limit with auto-pagination
+    --page-size INT     # Items per page
+```
+
+Some list endpoints also support one or more of these flags. Check the command help before using them:
+
+```bash
     --filter STRING     # Filter expression, e.g. "enabled==true"
--o, --order-by STRING   # Sort field
+    --order-by STRING   # Sort field
     --order asc|desc    # Sort direction
 ```
 
@@ -320,19 +324,19 @@ ikuai-cli auth-server set --data '{"enabled":true}'
 ## Objects
 
 ```bash
-ikuai-cli objects ip list
+ikuai-cli objects ip list --page 1 --page-size 20
 ikuai-cli objects ip create --name servers --value 192.168.1.10,192.168.1.11
 ikuai-cli objects ip get <ID>
 ikuai-cli objects ip update <ID> --name servers_v2 --value 192.168.1.12
 ikuai-cli objects ip refs --group-name servers_v2
 ikuai-cli objects ip delete <ID> --yes
-ikuai-cli objects ip6 list
-ikuai-cli objects mac list
-ikuai-cli objects port list
-ikuai-cli objects proto list
-ikuai-cli objects domain list
+ikuai-cli objects ip6 list --page 1 --page-size 20
+ikuai-cli objects mac list --page 1 --page-size 20
+ikuai-cli objects port list --page 1 --page-size 20
+ikuai-cli objects proto list --page 1 --page-size 20
+ikuai-cli objects domain list --page 1 --page-size 20
 ikuai-cli objects time create --name office --type weekly --weekdays 12345 --start-time 09:00 --end-time 18:00
-ikuai-cli objects time list
+ikuai-cli objects time list --page 1 --page-size 20
 ```
 
 ## Other

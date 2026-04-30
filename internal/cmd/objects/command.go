@@ -42,9 +42,10 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
-			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			page, _ := cmd.Flags().GetInt("page")
+			pageSize, _ := cmd.Flags().GetInt("page-size")
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath,
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, "", "", "", "limit"))
 			if err != nil {
 				return err
 			}
@@ -52,7 +53,7 @@ func objectGroup(app *cliapp.Runtime, name, apiPath string, fieldMap map[string]
 			return nil
 		},
 	}
-	cliapp.AddListFlags(listCmd)
+	cliapp.AddPaginationFlags(listCmd)
 
 	getCmd := &cobra.Command{
 		Use:   "get ID",
