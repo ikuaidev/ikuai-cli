@@ -33,8 +33,11 @@ func TestStaticListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "5" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "5")
 			}
-			if q.Get("page_size") != "30" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "30")
+			if q.Get("limit") != "30" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "30")
+			}
+			if q.Has("page_size") {
+				t.Fatalf("page_size query param should not be sent: %s", req.URL.RawQuery)
 			}
 			if q.Get("filter") != "dst==10.0.0.0/24" {
 				t.Fatalf("filter = %q, want %q", q.Get("filter"), "dst==10.0.0.0/24")
@@ -54,6 +57,60 @@ func TestStaticListBuildsExpectedQueryParams(t *testing.T) {
 
 	cmd := New(app)
 	cmd.SetArgs([]string{"static", "list", "--page", "5", "--page-size", "30", "--filter", "dst==10.0.0.0/24", "--order", "desc", "--order-by", "dst"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	want := `{"items":[]}` + "\n"
+	if got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestStreamDomainListBuildsExpectedQueryParams(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-route"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.Path != "/api/v4.0/routing/domain-rules" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/routing/domain-rules")
+			}
+			q := req.URL.Query()
+			if q.Get("page") != "2" {
+				t.Fatalf("page = %q, want %q", q.Get("page"), "2")
+			}
+			if q.Get("limit") != "25" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "25")
+			}
+			if q.Has("page_size") {
+				t.Fatalf("page_size query param should not be sent: %s", req.URL.RawQuery)
+			}
+			if q.Get("filter") != "enabled==yes" {
+				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==yes")
+			}
+			if q.Get("order") != "asc" {
+				t.Fatalf("order = %q, want %q", q.Get("order"), "asc")
+			}
+			if q.Get("order_by") != "prio" {
+				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "prio")
+			}
+			if got := req.Header.Get("Authorization"); got != "Bearer token-route" {
+				t.Fatalf("Authorization = %q, want %q", got, "Bearer token-route")
+			}
+			return jsonResponse(`{"code":0,"data":{"items":[]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"stream", "domain", "list", "--page", "2", "--page-size", "25", "--filter", "enabled==yes", "--order", "asc", "--order-by", "prio"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
