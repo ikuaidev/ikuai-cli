@@ -62,7 +62,7 @@ ikuai-cli monitor protocols --format json            # Protocol distribution
 ikuai-cli monitor protocols-history --format json    # Protocol history
 ikuai-cli monitor app-traffic-summary --format json  # App-layer traffic summary (24h)
 ikuai-cli monitor app-protocols-load --format json   # Current app protocol load
-ikuai-cli monitor app-protocols-history --format json --appids 2580003,2580004  # App protocol rate history
+ikuai-cli monitor app-protocols-history --format json --appids 2580003,2580004 --starttime 1773215100 --stoptime 1773218700  # App protocol rate history
 ikuai-cli monitor app-protocols-terminals --format json --appid 2580003         # Terminals using an app
 ```
 

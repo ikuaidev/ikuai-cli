@@ -155,6 +155,16 @@ func TestListParams(t *testing.T) {
 	}
 }
 
+func TestListParamsWithPageSizeKey(t *testing.T) {
+	p := ListParamsWithPageSizeKey(2, 50, "", "", "", "limit")
+	if p["page"] != "2" || p["limit"] != "50" {
+		t.Fatalf("page/limit wrong: %v", p)
+	}
+	if _, ok := p["page_size"]; ok {
+		t.Fatalf("page_size should not be present: %v", p)
+	}
+}
+
 func TestListParamsOmitsEmpty(t *testing.T) {
 	p := ListParams(1, 20, "", "", "")
 	if _, ok := p["filter"]; ok {
