@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -31,17 +32,16 @@ func TestIPListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "6" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "6")
 			}
-			if q.Get("page_size") != "40" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "40")
+			if q.Get("limit") != "40" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "40")
 			}
-			if q.Get("filter") != "enabled==yes" {
-				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==yes")
+			if q.Has("page_size") {
+				t.Fatalf("page_size query param should not be sent: %s", req.URL.RawQuery)
 			}
-			if q.Get("order") != "asc" {
-				t.Fatalf("order = %q, want %q", q.Get("order"), "asc")
-			}
-			if q.Get("order_by") != "priority" {
-				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "priority")
+			for _, unsupported := range []string{"filter", "order", "order_by"} {
+				if q.Has(unsupported) {
+					t.Fatalf("%s query param should not be sent: %s", unsupported, req.URL.RawQuery)
+				}
 			}
 			if got := req.Header.Get("Authorization"); got != "Bearer token-qos" {
 				t.Fatalf("Authorization = %q, want %q", got, "Bearer token-qos")
@@ -51,7 +51,7 @@ func TestIPListBuildsExpectedQueryParams(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"ip", "list", "--page", "6", "--page-size", "40", "--filter", "enabled==yes", "--order", "asc", "--order-by", "priority"})
+	cmd.SetArgs([]string{"ip", "list", "--page", "6", "--page-size", "40"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -60,6 +60,36 @@ func TestIPListBuildsExpectedQueryParams(t *testing.T) {
 	want := `{"items":[]}` + "\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestListHelpOnlyExposesYAMLSupportedQueryFlags(t *testing.T) {
+	t.Parallel()
+
+	for _, args := range [][]string{
+		{"ip", "list", "--help"},
+		{"mac", "list", "--help"},
+	} {
+		var out bytes.Buffer
+		app := cliapp.New(&out, &out)
+		cmd := New(app)
+		cmd.SetOut(&out)
+		cmd.SetErr(&out)
+		cmd.SetArgs(args)
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("Execute(%v) error = %v", args, err)
+		}
+		help := out.String()
+		for _, expected := range []string{"--page", "--page-size"} {
+			if !strings.Contains(help, expected) {
+				t.Fatalf("help for %v missing %s:\n%s", args, expected, help)
+			}
+		}
+		for _, unsupported := range []string{"--filter", "--order ", "--order-by"} {
+			if strings.Contains(help, unsupported) {
+				t.Fatalf("help for %v contains unsupported %s:\n%s", args, unsupported, help)
+			}
+		}
 	}
 }
 
