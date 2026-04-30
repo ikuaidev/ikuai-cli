@@ -11,7 +11,7 @@ import (
 // natFlagDescs provides human-readable descriptions for NAT/DNAT CLI flags.
 var natFlagDescs = map[string]string{
 	"name":          "Rule name",
-	"action":        "NAT action (SNAT/DNAT/MASQUERADE)",
+	"action":        "NAT action (filter/dnat/snat)",
 	"protocol":      "Protocol (tcp/udp/any)",
 	"in-interface":  "Inbound interface",
 	"out-interface": "Outbound interface",
