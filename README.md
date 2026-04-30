@@ -110,6 +110,7 @@ ikuai-cli log system list --human-time       # System logs
 - **Users** — account management, auth-server, bandwidth limits
 - **Routing** — static routes, policy routing, multi-WAN
 - **VPN** — IPSec, PPTP, L2TP, WireGuard
+- **Objects** — IP, IPv6, MAC, port, protocol, domain, time object groups
 - **Wireless** — Wi-Fi configuration and management
 - **QoS** — bandwidth control and traffic shaping
 - **System** — config, schedules, remote access, VRRP, SSH-based reset
@@ -149,7 +150,7 @@ Environment variables (`IKUAI_CLI_BASE_URL` / `IKUAI_CLI_TOKEN`) are never writt
 
 ## Use with AI Agents
 
-ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and 7 domain-specific [skills](./skills/) that teach AI agents how to manage iKuai routers.
+ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and domain-specific [skills](./skills/) that teach AI agents how to manage iKuai routers.
 
 | Skill | Description |
 |-------|-------------|
@@ -158,6 +159,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and 7 domain-specific [skills](.
 | [users](skills/users.md) | Online users, kick, accounts, packages |
 | [security](skills/security.md) | ACL, MAC filter, L7, URL filter, domain blacklist, peerconn, terminals |
 | [vpn](skills/vpn.md) | PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard |
+| [objects](skills/objects.md) | IP, IPv6, MAC, port, protocol, domain, time object groups |
 | [system](skills/system.md) | Config, schedules, remote access, VRRP, SSH reset |
 | [batch](skills/batch.md) | Multi-command workflows: init, bulk DHCP, backup |
 

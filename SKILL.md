@@ -59,7 +59,7 @@ ikuai-cli auth status --format json
 | Auth | [auth.md](skills/auth.md) | Login, PPPoE auth accounts |
 | Auth Server | [auth-server.md](skills/auth-server.md) | Web portal auth config |
 | Log | [log.md](skills/log.md) | System/DHCP/PPPoE/auth/ARP logs |
-| Objects | [objects.md](skills/objects.md) | IP/MAC/port/domain/time objects |
+| Objects | [objects.md](skills/objects.md) | IP/IPv6/MAC/port/protocol/domain/time objects |
 | QoS | [qos.md](skills/qos.md) | IP/MAC bandwidth control |
 | Routing | [routing.md](skills/routing.md) | Static routes, stream shunting |
 | Wireless | [wireless.md](skills/wireless.md) | Blacklist, VLAN, AC management |

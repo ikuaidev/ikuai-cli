@@ -32,17 +32,13 @@ func TestIPListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "4" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "4")
 			}
-			if q.Get("page_size") != "15" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "15")
+			if q.Get("limit") != "15" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "15")
 			}
-			if q.Get("filter") != "group==office" {
-				t.Fatalf("filter = %q, want %q", q.Get("filter"), "group==office")
-			}
-			if q.Get("order") != "asc" {
-				t.Fatalf("order = %q, want %q", q.Get("order"), "asc")
-			}
-			if q.Get("order_by") != "name" {
-				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "name")
+			for _, unsupported := range []string{"page_size", "filter", "order", "order_by"} {
+				if q.Has(unsupported) {
+					t.Fatalf("query unexpectedly includes %q: %v", unsupported, q)
+				}
 			}
 			if got := req.Header.Get("Authorization"); got != "Bearer token-obj" {
 				t.Fatalf("Authorization = %q, want %q", got, "Bearer token-obj")
@@ -52,7 +48,7 @@ func TestIPListBuildsExpectedQueryParams(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"ip", "list", "--page", "4", "--page-size", "15", "--filter", "group==office", "--order", "asc", "--order-by", "name"})
+	cmd.SetArgs([]string{"ip", "list", "--page", "4", "--page-size", "15"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -169,6 +165,33 @@ func TestObjectCommandsDoNotExposeUnsupportedToggle(t *testing.T) {
 
 	if strings.Contains(out.String(), "toggle") {
 		t.Fatalf("help unexpectedly exposes toggle: %s", out.String())
+	}
+}
+
+func TestObjectListDoesNotExposeUnsupportedQueryFlags(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	cmd := New(app)
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"ip", "list", "--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	help := out.String()
+	for _, unsupported := range []string{"--filter", "--order ", "--order-by"} {
+		if strings.Contains(help, unsupported) {
+			t.Fatalf("help unexpectedly exposes %s: %s", unsupported, help)
+		}
+	}
+	for _, expected := range []string{"--page", "--page-size"} {
+		if !strings.Contains(help, expected) {
+			t.Fatalf("help missing %s: %s", expected, help)
+		}
 	}
 }
 

@@ -110,6 +110,7 @@ ikuai-cli log system list --human-time       # 系统日志
 - **用户管理** — 账号管理、认证服务器、带宽限制
 - **路由配置** — 静态路由、策略路由、多 WAN 负载均衡
 - **VPN** — IPSec、PPTP、L2TP、WireGuard
+- **对象组** — IP、IPv6、MAC、端口、协议、域名、时间对象组
 - **无线管理** — Wi-Fi 配置与管理
 - **QoS** — 带宽控制和流量整形
 - **系统维护** — 配置管理、定时任务、远程访问、VRRP、SSH 重置
@@ -149,7 +150,7 @@ export IKUAI_CLI_CONFIG_FILE=/path/to/config.json
 
 ## AI Agent 集成
 
-ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和 7 个领域 [skills](./skills/)，让 AI Agent 可以直接操作 iKuai 路由器。
+ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和领域 [skills](./skills/)，让 AI Agent 可以直接操作 iKuai 路由器。
 
 | 技能 | 说明 |
 |------|------|
@@ -158,6 +159,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和 7 个领域 [skills](./skills/)，
 | [users](skills/users.md) | 在线用户、踢下线、账户、套餐 |
 | [security](skills/security.md) | ACL、MAC 过滤、L7、URL 过滤、域名黑名单、连接数限制、终端标注 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |
+| [objects](skills/objects.md) | IP、IPv6、MAC、端口、协议、域名、时间对象组 |
 | [system](skills/system.md) | 系统配置、定时任务、远程访问、VRRP、SSH 重置 |
 | [batch](skills/batch.md) | 组合工作流：初始化、批量 DHCP、配置备份 |
 
