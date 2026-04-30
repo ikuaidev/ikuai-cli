@@ -47,15 +47,19 @@ func ListParamsWithPageSizeKey(page, pageSize int, filter, order, orderBy, pageS
 }
 
 func AddListFlags(cmd *cobra.Command) {
-	cmd.Flags().IntP("page", "p", 1, "Page number")
-	cmd.Flags().Int("page-size", 20, "Items per page")
-	// --limit is planned but not yet implemented; omitted from registration to avoid misleading users.
+	AddPaginationFlags(cmd)
 	cmd.Flags().String("filter", "", "Filter: field==value, & for AND, comma for OR")
 	cmd.Flags().String("order", "", "Sort direction: asc|desc")
 	cmd.Flags().String("order-by", "", "Sort field")
 	_ = cmd.RegisterFlagCompletionFunc("order", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"asc", "desc"}, cobra.ShellCompDirectiveNoFileComp
 	})
+}
+
+func AddPaginationFlags(cmd *cobra.Command) {
+	cmd.Flags().IntP("page", "p", 1, "Page number")
+	cmd.Flags().Int("page-size", 20, "Items per page")
+	// --limit is planned but not yet implemented; omitted from registration to avoid misleading users.
 }
 
 func GetListParams(cmd *cobra.Command) (page, pageSize int, filter, order, orderBy string) {
