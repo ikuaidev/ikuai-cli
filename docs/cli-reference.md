@@ -54,15 +54,15 @@ ikuai-cli auth clear
 
 ```bash
 ikuai-cli monitor system
-ikuai-cli monitor cpu
-ikuai-cli monitor cpu --time-range day --aggregate max
-ikuai-cli monitor memory
-ikuai-cli monitor disk
-ikuai-cli monitor temp
-ikuai-cli monitor terminals
-ikuai-cli monitor connections
-ikuai-cli monitor network-load
-ikuai-cli monitor downstream
+ikuai-cli monitor cpu --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor cpu --time-range day --start-time 1773215100 --end-time 1773301500 --aggregate max
+ikuai-cli monitor memory --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor disk --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor temp --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor terminals --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor connections --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor network-load --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor downstream --page 1 --page-size 20 --device camera --status 1
 ikuai-cli monitor interfaces
 ikuai-cli monitor interfaces-traffic
 ikuai-cli monitor interfaces-config
@@ -74,23 +74,23 @@ ikuai-cli monitor clients-ip6-online
 ikuai-cli monitor clients-ip6-offline
 ikuai-cli monitor traffic-summary
 ikuai-cli monitor traffic-load --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-protocols-history --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-app-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
+ikuai-cli monitor client-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --starttime 1773304236 --stoptime 1773304246
+ikuai-cli monitor client-protocols-history --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --starttime 1773304236 --stoptime 1773304246
+ikuai-cli monitor client-app-protocols --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --page-size 10
 ikuai-cli monitor protocols
 ikuai-cli monitor protocols-history
 ikuai-cli monitor app-traffic-summary
-ikuai-cli monitor app-protocols-load
+ikuai-cli monitor app-protocols-load --page 1 --page-size 20 --order desc --order-by total_down
 ikuai-cli monitor app-protocols-history --appids 2580003,2580004 --starttime 1773215100 --stoptime 1773218700
 ikuai-cli monitor app-protocols-terminals --appid 2580003
 ikuai-cli monitor wireless-stats
 ikuai-cli monitor wireless-score
-ikuai-cli monitor wireless-traffic
-ikuai-cli monitor ssid-clients
-ikuai-cli monitor channel-clients
-ikuai-cli monitor cameras
-ikuai-cli monitor flow-shunting
-ikuai-cli monitor switch
+ikuai-cli monitor wireless-traffic --apmac 00:00:00:00:00:00
+ikuai-cli monitor ssid-clients --ssid iKuai01_2G
+ikuai-cli monitor channel-clients --channel 6
+ikuai-cli monitor cameras --page 1 --page-size 20 --keyword Hikvision
+ikuai-cli monitor flow-shunting --type data
+ikuai-cli monitor switch --page 1 --page-size 20 --keyword switch
 ```
 
 ## Network

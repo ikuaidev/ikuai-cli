@@ -12,24 +12,26 @@ All examples use `--format json` because this skill is primarily for agents and 
 ### System Overview
 ```bash
 ikuai-cli monitor system --format json       # Uptime, load, firmware version, WAN IP
-ikuai-cli monitor cpu --format json          # CPU load (default: last hour, avg)
-ikuai-cli monitor cpu --format json --time-range day --aggregate max   # Last day, max values
-ikuai-cli monitor memory --format json       # Memory usage history
-ikuai-cli monitor disk --format json         # Disk usage history
-ikuai-cli monitor temp --format json         # CPU temperature history
-ikuai-cli monitor connections --format json  # Connection count history
-ikuai-cli monitor terminals --format json    # Terminal count history
-ikuai-cli monitor network-load --format json # Network load history
+ikuai-cli monitor cpu --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor cpu --format json --time-range day --start-time 1773215100 --end-time 1773301500 --aggregate max
+ikuai-cli monitor memory --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor disk --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor temp --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor connections --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor terminals --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor network-load --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
 ```
 
 Load commands (cpu, memory, disk, temp, terminals, connections, network-load) support:
 - `--time-range hour|day|week|month` — time range
+- `--start-time <unix>` — start timestamp
+- `--end-time <unix>` — end timestamp
 - `--aggregate avg|max` — calculation method
 
 ### Traffic & Network
 ```bash
-ikuai-cli monitor network-load --format json         # Overall network load + rate history
-ikuai-cli monitor downstream --format json           # Downstream traffic detail
+ikuai-cli monitor network-load --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor downstream --format json --page 1 --page-size 20 --device camera --status 1
 ikuai-cli monitor interfaces --format json           # WAN interface status (IP, gateway)
 ikuai-cli monitor interfaces-traffic --format json   # Per-interface Bytes/s
 ikuai-cli monitor interfaces-config --format json    # Interface config detail
@@ -51,17 +53,17 @@ ikuai-cli monitor traffic-summary --format json                             # Pe
 Per-client commands (require `--ip` and `--mac`):
 ```bash
 ikuai-cli monitor traffic-load --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-protocols-history --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-app-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
+ikuai-cli monitor client-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --starttime 1773304236 --stoptime 1773304246
+ikuai-cli monitor client-protocols-history --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --starttime 1773304236 --stoptime 1773304246
+ikuai-cli monitor client-app-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --page-size 10
 ```
 
 ### Application & Protocol
 ```bash
 ikuai-cli monitor protocols --format json            # Protocol distribution
 ikuai-cli monitor protocols-history --format json    # Protocol history
-ikuai-cli monitor app-traffic-summary --format json  # App-layer traffic summary (24h)
-ikuai-cli monitor app-protocols-load --format json   # Current app protocol load
+ikuai-cli monitor app-traffic-summary --format json --page 1 --page-size 20  # App-layer traffic summary (24h)
+ikuai-cli monitor app-protocols-load --format json --page 1 --page-size 20 --order desc --order-by total_down  # Current app protocol load
 ikuai-cli monitor app-protocols-history --format json --appids 2580003,2580004 --starttime 1773215100 --stoptime 1773218700  # App protocol rate history
 ikuai-cli monitor app-protocols-terminals --format json --appid 2580003         # Terminals using an app
 ```
@@ -70,10 +72,10 @@ ikuai-cli monitor app-protocols-terminals --format json --appid 2580003         
 ```bash
 ikuai-cli monitor wireless-stats --format json    # Wireless site statistics
 ikuai-cli monitor wireless-score --format json    # Quality score
-ikuai-cli monitor wireless-traffic --format json  # Per-AP traffic
-ikuai-cli monitor ssid-clients --format json      # SSID client distribution
-ikuai-cli monitor channel-clients --format json   # Channel client distribution
-ikuai-cli monitor cameras --format json           # IP camera list
+ikuai-cli monitor wireless-traffic --format json --apmac 00:00:00:00:00:00
+ikuai-cli monitor ssid-clients --format json --ssid iKuai01_2G
+ikuai-cli monitor channel-clients --format json --channel 6
+ikuai-cli monitor cameras --format json --page 1 --page-size 20 --keyword Hikvision
 ```
 
 ## Common Workflows
@@ -81,10 +83,10 @@ ikuai-cli monitor cameras --format json           # IP camera list
 ### Health Check
 ```bash
 ikuai-cli monitor system --format json
-ikuai-cli monitor cpu --format json
-ikuai-cli monitor memory --format json
-ikuai-cli monitor disk --format json
-ikuai-cli monitor connections --format json
+ikuai-cli monitor cpu --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor memory --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor disk --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
+ikuai-cli monitor connections --format json --time-range hour --start-time 1773300000 --end-time 1773303600 --aggregate avg
 ```
 
 ### Traffic Investigation
@@ -93,9 +95,10 @@ ikuai-cli monitor connections --format json
 ikuai-cli monitor clients-online --format json --page-size 200
 # Step 2: Drill into a specific client
 ikuai-cli monitor traffic-load --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
-ikuai-cli monitor client-app-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c
+ikuai-cli monitor client-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --starttime 1773304236 --stoptime 1773304246
+ikuai-cli monitor client-protocols-history --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --starttime 1773304236 --stoptime 1773304246
+ikuai-cli monitor client-app-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --page-size 10
 # Step 3: Check app-level traffic
-ikuai-cli monitor app-traffic-summary --format json
+ikuai-cli monitor app-traffic-summary --format json --page 1 --page-size 20
 ikuai-cli monitor app-protocols-terminals --format json --appid 2580003
 ```
