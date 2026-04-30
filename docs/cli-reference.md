@@ -154,12 +154,23 @@ ikuai-cli security acl list
 ikuai-cli security acl create --name "BlockSSH" --action drop --protocol tcp --direction forward --dst-port 22 --priority 30 --enabled no
 ikuai-cli security mac get-mode
 ikuai-cli security mac set-mode --acl-mac 0
+ikuai-cli security mac create --name "AllowPhone" --mac "00:11:22:33:44:55" --enabled no
+ikuai-cli security l7 create --name "BlockApp" --action drop --app-proto "抖音短视频" --priority 30 --enabled no
 ikuai-cli security url black list
+ikuai-cli security url black create --name "BlockAds" --mode 0 --domain "ads.example.com" --enabled no
 ikuai-cli security url keywords create --name "KW1" --mode exact --src-url "example.com" --ori-keyword "bad" --rep-keyword "good" --hit-rate 1 --priority 10 --enabled no
+ikuai-cli security url redirect create --name "Redirect1" --mode exact --src-url "old.example.com" --dst-url "192.0.2.10" --hit-rate 1 --priority 30 --enabled no
+ikuai-cli security url replace create --name "Replace1" --mode exact --src-url "example.com" --param-keyword "track" --rep-keyword "clean" --hit-rate 1 --priority 30 --enabled no
 ikuai-cli security domain-blacklist list
-ikuai-cli security l7 list
+ikuai-cli security domain-blacklist create --name "BlockedDomains" --domain-group "blocked_group" --enabled no
+ikuai-cli security peerconn list
+ikuai-cli security peerconn create --name "LimitConn" --limits 500 --protocol tcp --src-addr "192.168.1.0/24" --dst-port 65000 --enabled no
+ikuai-cli security terminals list
+ikuai-cli security terminals create --name "Printer" --mac "AA:BB:CC:DD:EE:FF" --comment "office"
 ikuai-cli security advanced-get
+ikuai-cli security advanced-set --noping-lan 1
 ikuai-cli security secondary-route-get
+ikuai-cli security secondary-route-set --ttl-num 21
 ```
 
 ## VPN

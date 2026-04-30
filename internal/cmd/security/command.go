@@ -506,7 +506,9 @@ func secWriteCmd(app *cliapp.Runtime, use, short string, withID bool, fieldMap m
 
 	if fieldMap != nil {
 		addSemanticFlags(c, fieldMap, customFlagDescs)
-		cliapp.AddEnabledFlag(c)
+		if _, ok := fieldMap["enabled"]; ok {
+			cliapp.AddEnabledFlag(c)
+		}
 
 		c.RunE = func(cmd *cobra.Command, args []string) error {
 			if err := app.RequireAuth(); err != nil {
