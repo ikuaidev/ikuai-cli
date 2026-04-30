@@ -122,9 +122,10 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 			if len(defaultColumns) > 0 {
 				app.DefaultColumns = defaultColumns
 			}
-			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			page, _ := cmd.Flags().GetInt("page")
+			pageSize, _ := cmd.Flags().GetInt("page-size")
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath,
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, "", "", "", "limit"))
 			if err != nil {
 				return err
 			}
@@ -132,7 +133,7 @@ func qosGroup(app *cliapp.Runtime, name, apiPath string, addFlags func(*cobra.Co
 			return nil
 		},
 	}
-	cliapp.AddListFlags(listCmd)
+	cliapp.AddPaginationFlags(listCmd)
 
 	getCmd := &cobra.Command{
 		Use:   "get ID",
