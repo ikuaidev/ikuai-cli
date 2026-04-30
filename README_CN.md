@@ -107,7 +107,7 @@ ikuai-cli log system list --human-time       # 系统日志
 - **网络管理** — DNS、DHCP、VLAN、NAT、PPPoE、网口配置
 - **系统监控** — CPU、内存、运行时间、流量、在线终端
 - **安全策略** — ACL、MAC 过滤、L7 规则、URL 过滤、域名黑名单、连接数限制、终端标注
-- **用户管理** — 账号管理、认证服务器、带宽限制
+- **用户管理** — 认证账号、在线会话、踢下线、认证套餐、带宽限制
 - **路由配置** — 静态路由、策略路由、多 WAN 负载均衡
 - **VPN** — PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard
 - **对象组** — IP、IPv6、MAC、端口、协议、域名、时间对象组
@@ -156,7 +156,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和领域 [skills](./skills/)，让 AI
 |------|------|
 | [monitor](skills/monitor.md) | 系统状态、CPU、内存、流量、在线客户端 |
 | [network](skills/network.md) | DNS、DHCP、VLAN、NAT/DNAT、WAN、LAN、PPPoE、DMZ、DNS 代理 |
-| [users](skills/users.md) | 在线用户、踢下线、账户、套餐 |
+| [users](skills/users.md) | 在线用户、按 ID 踢下线、账户、套餐 |
 | [security](skills/security.md) | ACL、MAC 过滤、L7、URL 过滤、域名黑名单、连接数限制、终端标注 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |
 | [objects](skills/objects.md) | IP、IPv6、MAC、端口、协议、域名、时间对象组 |
@@ -190,7 +190,7 @@ git clone https://github.com/ikuaidev/ikuai-cli.git .agents/skills/ikuai-cli
 
 ```bash
 ikuai-cli monitor system --format json
-ikuai-cli users online --format json | jq '.[] | {ip, mac, username}'
+ikuai-cli users online --format json | jq '.data[] | {id, ip_addr, mac, username}'
 ```
 
 使用 `--format yaml` 获取节省 token 的输出（当不需要完整 JSON 精度时）。

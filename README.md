@@ -107,7 +107,7 @@ ikuai-cli log system list --human-time       # System logs
 - **Network** — DNS, DHCP, VLAN, NAT, PPPoE, interfaces
 - **Monitor** — CPU, memory, uptime, traffic, online clients
 - **Security** — ACL, MAC filtering, L7 rules, URL filtering, domain blacklist, peerconn, terminals
-- **Users** — account management, auth-server, bandwidth limits
+- **Users** — auth accounts, online sessions, kick, auth packages, bandwidth limits
 - **Routing** — static routes, policy routing, multi-WAN
 - **VPN** — PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard
 - **Objects** — IP, IPv6, MAC, port, protocol, domain, time object groups
@@ -156,7 +156,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and domain-specific [skills](./s
 |-------|-------------|
 | [monitor](skills/monitor.md) | System status, CPU, memory, traffic, online clients |
 | [network](skills/network.md) | DNS, DHCP, VLAN, NAT/DNAT, WAN, LAN, PPPoE, DMZ, DNS proxy |
-| [users](skills/users.md) | Online users, kick, accounts, packages |
+| [users](skills/users.md) | Online users, kick by ID, accounts, packages |
 | [security](skills/security.md) | ACL, MAC filter, L7, URL filter, domain blacklist, peerconn, terminals |
 | [vpn](skills/vpn.md) | PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard |
 | [objects](skills/objects.md) | IP, IPv6, MAC, port, protocol, domain, time object groups |
@@ -190,7 +190,7 @@ Use `--format json` for structured output:
 
 ```bash
 ikuai-cli monitor system --format json
-ikuai-cli users online --format json | jq '.[] | {ip, mac, username}'
+ikuai-cli users online --format json | jq '.data[] | {id, ip_addr, mac, username}'
 ```
 
 Use `--format yaml` for token-efficient output when full JSON fidelity is not required.

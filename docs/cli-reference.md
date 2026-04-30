@@ -129,10 +129,15 @@ ikuai-cli network vlan create --name "IoT" --vlan-id 100 --interface lan1 --netm
 
 ```bash
 ikuai-cli users accounts list
-ikuai-cli users accounts create --data '{"username":"guest","password":"guest123"}'
+ikuai-cli users accounts create --username "guest" --password "guest123"
+ikuai-cli users accounts update 1 --comment "updated"
+ikuai-cli users accounts delete 1 --yes
 ikuai-cli users online
-ikuai-cli users kick --data '{"id":1}'
+ikuai-cli users kick 1 --yes
 ikuai-cli users packages list
+ikuai-cli users packages create --name "month-card" --time "1m" --price 100 --up-speed 500 --down-speed 1000
+ikuai-cli users packages update 1 --price 120
+ikuai-cli users packages delete 1 --yes
 ```
 
 ## System
