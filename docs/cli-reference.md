@@ -106,19 +106,19 @@ ikuai-cli network lan
 
 # DHCP
 ikuai-cli network dhcp list --page 1 --page-size 50
-ikuai-cli network dhcp create --name "Office" --interface lan1 --addr-pool 192.168.1.100-192.168.1.200
+ikuai-cli network dhcp create --name "Office" --interface lan1 --phy-ifnames "eth0,eth1" --addr-pool 192.168.1.100-192.168.1.200 --netmask 255.255.255.0 --gateway 192.168.1.1 --lease 120
 ikuai-cli network dhcp toggle 1 --enabled yes
 ikuai-cli network dhcp static list
-ikuai-cli network dhcp static create --name "Printer" --ip 192.168.1.50 --mac AA:BB:CC:DD:EE:FF
+ikuai-cli network dhcp static create --name "Printer" --ip 192.168.1.50 --mac AA:BB:CC:DD:EE:FF --interface lan1
 ikuai-cli network dhcp access-mode get
 
 # NAT / DNAT
-ikuai-cli network nat list --filter "enabled==true" --order asc --order-by id
-ikuai-cli network nat create --name "Web" --in-interface wan1 --action DNAT
-ikuai-cli network dnat create --name "SSH" --wan-port 2222 --lan-addr 192.168.1.10 --lan-port 22 --protocol tcp
+ikuai-cli network nat list
+ikuai-cli network nat create --name "OfficeNat" --action filter --in-interface any --out-interface any --src-addr 192.168.1.0/24 --protocol any
+ikuai-cli network dnat create --name "SSH" --wan-port 2222 --lan-addr 192.168.1.10 --lan-port 22 --protocol tcp --interface all
 
 # VLAN
-ikuai-cli network vlan create --name "IoT" --vlan-id 100 --interface lan1
+ikuai-cli network vlan create --name "IoT" --vlan-id 100 --interface lan1 --netmask 255.255.255.0 --ip 10.0.100.1
 ```
 
 ## Users

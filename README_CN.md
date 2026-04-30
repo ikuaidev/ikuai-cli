@@ -154,7 +154,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和 7 个领域 [skills](./skills/)，
 | 技能 | 说明 |
 |------|------|
 | [monitor](skills/monitor.md) | 系统状态、CPU、内存、流量、在线客户端 |
-| [network](skills/network.md) | DNS、DHCP、VLAN、NAT、WAN、LAN、PPPoE |
+| [network](skills/network.md) | DNS、DHCP、VLAN、NAT/DNAT、WAN、LAN、PPPoE、DMZ、DNS 代理 |
 | [users](skills/users.md) | 在线用户、踢下线、账户、套餐 |
 | [security](skills/security.md) | ACL、MAC 过滤、L7、URL 过滤、域名黑名单、连接数限制、终端标注 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |

@@ -154,7 +154,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and 7 domain-specific [skills](.
 | Skill | Description |
 |-------|-------------|
 | [monitor](skills/monitor.md) | System status, CPU, memory, traffic, online clients |
-| [network](skills/network.md) | DNS, DHCP, VLAN, NAT, WAN, LAN, PPPoE |
+| [network](skills/network.md) | DNS, DHCP, VLAN, NAT/DNAT, WAN, LAN, PPPoE, DMZ, DNS proxy |
 | [users](skills/users.md) | Online users, kick, accounts, packages |
 | [security](skills/security.md) | ACL, MAC filter, L7, URL filter, domain blacklist, peerconn, terminals |
 | [vpn](skills/vpn.md) | PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard |
