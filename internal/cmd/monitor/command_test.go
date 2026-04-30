@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -498,6 +499,40 @@ func TestClientAppProtocolsPassesYamlLimit(t *testing.T) {
 	cmd.SetArgs([]string{"client-app-protocols", "--ip", "192.168.9.199", "--mac", "08:9b:4b:01:7e:7c", "--page-size", "10"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
+	}
+}
+
+func TestClientAppProtocolsDefaultTableUsesReturnedAppnameField(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-123"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
+			}
+			return jsonResponse(`{"code":0,"message":"ok","data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total":7}]}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"client-app-protocols", "--ip", "192.168.9.199", "--mac", "08:9b:4b:01:7e:7c", "--page-size", "10"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "APPID") || !strings.Contains(got, "12345") {
+		t.Fatalf("default table should show appid value: %q", got)
+	}
+	if !strings.Contains(got, "APPNAME") || !strings.Contains(got, "ChatGPT") {
+		t.Fatalf("default table should show appname value: %q", got)
+	}
+	if strings.Contains(got, "APP_NAME") {
+		t.Fatalf("default table should not use stale app_name column: %q", got)
 	}
 }
 

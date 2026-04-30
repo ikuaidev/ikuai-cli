@@ -387,7 +387,7 @@ func monitorClientAppProtocolsCmd(app *cliapp.Runtime) *cobra.Command {
 			}
 			ip, _ := cmd.Flags().GetString("ip")
 			mac, _ := cmd.Flags().GetString("mac")
-			app.DefaultColumns = []string{"id", "app_name", "conn_cnt", "upload", "download", "total"}
+			app.DefaultColumns = []string{"id", "appid", "appname", "conn_cnt", "upload", "download", "total"}
 			params := map[string]string{"ip": ip, "mac": mac}
 			if limit, _ := cmd.Flags().GetInt("page-size"); limit > 0 {
 				params["limit"] = intStr(limit)
