@@ -271,7 +271,7 @@ func staticGroup(app *cliapp.Runtime) *cobra.Command {
 			app.DefaultColumns = []string{"id", "tagname", "dst_addr", "gateway", "netmask", "interface", "prio", "enabled"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/routing/static-routes",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -339,7 +339,7 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath,
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
