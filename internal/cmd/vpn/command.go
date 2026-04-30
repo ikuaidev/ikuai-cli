@@ -377,8 +377,9 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 				app.DefaultColumns = defaultColumns
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			params := vpnListParams(cmd, page, pageSize, filter, order, orderBy)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath+"/clients",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				params)
 			if err != nil {
 				return err
 			}
@@ -386,7 +387,7 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 			return nil
 		},
 	}
-	cliapp.AddListFlags(clientsCmd)
+	addVPNListFlags(clientsCmd)
 
 	clientCreateCmd := writeCmd(app, "client-create", "Create a "+name+" client", false, clientFieldMap, nil, clientDefaults,
 		func(body interface{}, id string) (json.RawMessage, error) {
@@ -415,6 +416,23 @@ func vpnServerGroup(app *cliapp.Runtime, name, apiPath string, clientFieldMap ma
 	return grp
 }
 
+func addVPNListFlags(cmd *cobra.Command) {
+	cliapp.AddListFlags(cmd)
+	cmd.Flags().String("key", "", "Fuzzy match fields, comma-separated")
+	cmd.Flags().String("pattern", "", "Fuzzy match pattern")
+}
+
+func vpnListParams(cmd *cobra.Command, page, pageSize int, filter, order, orderBy string) map[string]string {
+	params := cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit")
+	if key, _ := cmd.Flags().GetString("key"); key != "" {
+		params["key"] = key
+	}
+	if pattern, _ := cmd.Flags().GetString("pattern"); pattern != "" {
+		params["pattern"] = pattern
+	}
+	return params
+}
+
 func ipsecGroup(app *cliapp.Runtime) *cobra.Command {
 	grp := &cobra.Command{Use: "ipsec", Short: "IPSec clients"}
 
@@ -427,8 +445,9 @@ func ipsecGroup(app *cliapp.Runtime) *cobra.Command {
 			}
 			app.DefaultColumns = []string{"id", "name", "remote_addr", "leftsubnet", "rightsubnet", "interface", "keyexchange", "authby", "enabled"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			params := vpnListParams(cmd, page, pageSize, filter, order, orderBy)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/vpn/ipsec/clients",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				params)
 			if err != nil {
 				return err
 			}
@@ -436,7 +455,7 @@ func ipsecGroup(app *cliapp.Runtime) *cobra.Command {
 			return nil
 		},
 	}
-	cliapp.AddListFlags(clientsCmd)
+	addVPNListFlags(clientsCmd)
 
 	createCmd := writeCmd(app, "client-create", "Create an IPSec client", false, ipsecClientFieldMap, nil, ipsecClientDefaults,
 		func(body interface{}, id string) (json.RawMessage, error) {
@@ -480,8 +499,9 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 			}
 			app.DefaultColumns = []string{"id", "name", "local_address", "local_listenport", "interface", "mtu", "enabled"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			params := vpnListParams(cmd, page, pageSize, filter, order, orderBy)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/vpn/wireguard",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				params)
 			if err != nil {
 				return err
 			}
@@ -489,7 +509,7 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 			return nil
 		},
 	}
-	cliapp.AddListFlags(listCmd)
+	addVPNListFlags(listCmd)
 
 	peersListCmd := &cobra.Command{
 		Use:   "peers ID",
@@ -500,8 +520,9 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			params := vpnListParams(cmd, page, pageSize, filter, order, orderBy)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/vpn/wireguard/"+args[0]+"/peers",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				params)
 			if err != nil {
 				return err
 			}
@@ -509,7 +530,7 @@ func wireguardGroup(app *cliapp.Runtime) *cobra.Command {
 			return nil
 		},
 	}
-	cliapp.AddListFlags(peersListCmd)
+	addVPNListFlags(peersListCmd)
 
 	// WireGuard tunnel needs private/public keys — these must be passed via flags.
 	wgCreateFieldMap := make(map[string]string, len(wireguardFieldMap)+2)

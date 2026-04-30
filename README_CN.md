@@ -109,7 +109,7 @@ ikuai-cli log system list --human-time       # 系统日志
 - **安全策略** — ACL、MAC 过滤、L7 规则、URL 过滤、域名黑名单、连接数限制、终端标注
 - **用户管理** — 账号管理、认证服务器、带宽限制
 - **路由配置** — 静态路由、策略路由、多 WAN 负载均衡
-- **VPN** — IPSec、PPTP、L2TP、WireGuard
+- **VPN** — PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard
 - **对象组** — IP、IPv6、MAC、端口、协议、域名、时间对象组
 - **无线管理** — Wi-Fi 配置与管理
 - **QoS** — 带宽控制和流量整形

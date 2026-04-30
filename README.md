@@ -109,7 +109,7 @@ ikuai-cli log system list --human-time       # System logs
 - **Security** — ACL, MAC filtering, L7 rules, URL filtering, domain blacklist, peerconn, terminals
 - **Users** — account management, auth-server, bandwidth limits
 - **Routing** — static routes, policy routing, multi-WAN
-- **VPN** — IPSec, PPTP, L2TP, WireGuard
+- **VPN** — PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard
 - **Objects** — IP, IPv6, MAC, port, protocol, domain, time object groups
 - **Wireless** — Wi-Fi configuration and management
 - **QoS** — bandwidth control and traffic shaping
