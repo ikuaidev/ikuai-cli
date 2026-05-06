@@ -28,7 +28,7 @@ var helpGroups = []struct{ name, desc string }{
 	{"vpn", "VPN (pptp, l2tp, openvpn, ikev2, ipsec, wireguard)"},
 	{"users", "User management (accounts, online, kick, packages)"},
 	{"log", "System logs (arp, auth, dhcp, system, web, wireless ...)"},
-	{"system", "System config (get, schedules, remote-access, vrrp, alg, kernel, cpufreq, web-passwd)"},
+	{"system", "System config (get, schedules, remote-access, vrrp, backup, upgrade, web-admin)"},
 	{"auth-server", "Web auth server (get, set)"},
 	{"wireless", "Wireless control (blacklist, vlan, ac)"},
 	{"advanced", "Advanced services (ftp, http, samba, snmpd)"},

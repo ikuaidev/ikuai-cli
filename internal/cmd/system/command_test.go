@@ -35,10 +35,15 @@ func TestNewRegistersExpectedSystemCommands(t *testing.T) {
 		{name: "alg set ftp flag", args: []string{"alg", "set"}, wantUse: "set", wantFlag: "ftp"},
 		{name: "alg set ftp-ports flag", args: []string{"alg", "set"}, wantUse: "set", wantFlag: "ftp-ports"},
 		{name: "kernel set bbr flag", args: []string{"kernel", "set"}, wantUse: "set", wantFlag: "bbr"},
-		{name: "cpufreq set mode flag", args: []string{"cpufreq", "set"}, wantUse: "set", wantFlag: "mode"},
-		{name: "cpufreq mode-set mode flag", args: []string{"cpufreq", "mode-set"}, wantUse: "mode-set", wantFlag: "mode"},
-		{name: "web password reset ssh flag", args: []string{"web-passwd", "reset"}, wantUse: "reset", wantFlag: "ssh-user"},
-		{name: "web password reset confirm flag", args: []string{"web-passwd", "reset"}, wantUse: "reset", wantFlag: "yes"},
+		{name: "cpufreq mode set flag", args: []string{"cpufreq", "mode", "set"}, wantUse: "set", wantFlag: "mode"},
+		{name: "files list path flag", args: []string{"files", "list"}, wantUse: "list", wantFlag: "path"},
+		{name: "backup delete srcfile flag", args: []string{"backup", "delete"}, wantUse: "delete", wantFlag: "srcfile"},
+		{name: "backup auto set flag", args: []string{"backup-auto", "set"}, wantUse: "set", wantFlag: "valid-days"},
+		{name: "upgrade start confirm flag", args: []string{"upgrade", "start"}, wantUse: "start", wantFlag: "yes"},
+		{name: "web admin groups create flag", args: []string{"web-admin", "groups", "create"}, wantUse: "create", wantFlag: "perm-config"},
+		{name: "web admin accounts create flag", args: []string{"web-admin", "accounts", "create"}, wantUse: "create", wantFlag: "passwd-md5"},
+		{name: "web admin password status username flag", args: []string{"web-admin", "password-status"}, wantUse: "password-status", wantFlag: "username"},
+		{name: "web admin password set flag", args: []string{"web-admin", "password", "set"}, wantUse: "set", wantFlag: "passwd-md5"},
 	}
 
 	for _, tt := range tests {

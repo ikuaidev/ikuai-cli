@@ -77,6 +77,16 @@ func GetListParams(cmd *cobra.Command) (page, pageSize int, filter, order, order
 // to look numeric (e.g. SNMP community "161", VLAN name "0010").
 var integerAPIFields = map[string]bool{
 	"sshd_port": true, "http_port": true, "https_port": true,
+	"id": true, "language": true, "time_zone": true, "switch_nat": true,
+	"switch_ntp": true, "switch_ntpd": true, "switch_ntpserver": true,
+	"ntp_sync_cycle": true, "link_mode": true, "lan_nat": true, "fast_nat": true,
+	"open_telnetd": true, "open_wanweb": true, "open_sshd": true,
+	"open_ftp": true, "ftp_port": true, "ftp_access": true, "force_https": true,
+	"interval": true, "auto_sync": true, "single_line": true,
+	"ignore_wanstatus": true, "support_ftp": true, "support_tftp": true,
+	"support_sip": true, "support_h323": true, "valid_days": true,
+	"restore_type": true, "sync_bind_cloud": true, "group_id": true,
+	"force": true, "sesstimeout": true, "turbo": true,
 	"server_port": true, "open_mppe": true, "force_ipsec": true,
 	"local_listenport": true, "endpoint_port": true, "method": true,
 	"ikelifetime": true, "lifetime": true, "dpddelay": true, "dpdtimeout": true,

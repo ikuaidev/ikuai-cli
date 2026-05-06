@@ -113,7 +113,7 @@ ikuai-cli log system list --human-time       # System logs
 - **Objects** — IP, IPv6, MAC, port, protocol, domain, time object groups
 - **Wireless** — Wi-Fi configuration and management
 - **QoS** — bandwidth control and traffic shaping
-- **System** — config, schedules, remote access, VRRP, SSH-based reset
+- **System** — config, schedules, remote access, VRRP, backup, upgrade, web admin
 - **Log** — system logs and audit trails
 - **Interactive shell** — `repl` mode with multi-level tab completion
 - **Structured output** — table by default; `--format json/yaml` or `--raw` for machines; `--human-time` for timestamps; `--wide` / `--columns` for column control
@@ -160,7 +160,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and domain-specific [skills](./s
 | [security](skills/security.md) | ACL, MAC filter, L7, URL filter, domain blacklist, peerconn, terminals |
 | [vpn](skills/vpn.md) | PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard |
 | [objects](skills/objects.md) | IP, IPv6, MAC, port, protocol, domain, time object groups |
-| [system](skills/system.md) | Config, schedules, remote access, VRRP, SSH reset |
+| [system](skills/system.md) | Config, schedules, remote access, VRRP, backup, upgrade, web admin |
 | [batch](skills/batch.md) | Multi-command workflows: init, bulk DHCP, backup |
 
 ### Install Skills

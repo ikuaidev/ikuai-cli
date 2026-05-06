@@ -32,11 +32,11 @@ func TestSchedulesListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "3" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "3")
 			}
-			if q.Get("page_size") != "10" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "10")
+			if q.Get("limit") != "10" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "10")
 			}
-			if q.Get("filter") != "enabled==yes" {
-				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==yes")
+			if q.Get("filter") != "" {
+				t.Fatalf("filter = %q, want empty", q.Get("filter"))
 			}
 			if q.Get("order") != "asc" {
 				t.Fatalf("order = %q, want %q", q.Get("order"), "asc")
@@ -52,7 +52,7 @@ func TestSchedulesListBuildsExpectedQueryParams(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"schedules", "list", "--page", "3", "--page-size", "10", "--filter", "enabled==yes", "--order", "asc", "--order-by", "id"})
+	cmd.SetArgs([]string{"schedules", "list", "--page", "3", "--page-size", "10", "--order", "asc", "--order-by", "id"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -71,8 +71,19 @@ func TestSetSendsExpectedJSONBody(t *testing.T) {
 	app := cliapp.New(&out, &out)
 	app.Format = output.JSON
 	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-789"}
+	calls := 0
 	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			calls++
+			if calls == 1 {
+				if req.Method != http.MethodGet {
+					t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+				}
+				if req.URL.String() != "https://router.local/api/v4.0/system/basic/config" {
+					t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/system/basic/config")
+				}
+				return jsonResponse(systemBasicBaselineResponse), nil
+			}
 			if req.Method != http.MethodPut {
 				t.Fatalf("method = %q, want %q", req.Method, http.MethodPut)
 			}
@@ -84,8 +95,17 @@ func TestSetSendsExpectedJSONBody(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ReadAll() error = %v", err)
 			}
-			if string(body) != `{"hostname":"ikuai-gw"}` {
-				t.Fatalf("body = %q, want %q", string(body), `{"hostname":"ikuai-gw"}`)
+			var got map[string]interface{}
+			if err := json.Unmarshal(body, &got); err != nil {
+				t.Fatalf("Unmarshal body error = %v", err)
+			}
+			if got["hostname"] != "ikuai-gw" {
+				t.Fatalf("hostname = %v, want %q", got["hostname"], "ikuai-gw")
+			}
+			for _, key := range systemBasicFields {
+				if _, ok := got[key]; !ok {
+					t.Fatalf("body missing full-update field %q: %s", key, string(body))
+				}
 			}
 
 			return jsonResponse(`{"code":0,"message":"saved","data":null}`), nil
@@ -112,8 +132,13 @@ func TestSetSemanticFlagsSendCorrectBody(t *testing.T) {
 	app := cliapp.New(&out, &out)
 	app.Format = output.JSON
 	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-sf"}
+	calls := 0
 	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			calls++
+			if calls == 1 {
+				return jsonResponse(systemBasicBaselineResponse), nil
+			}
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
 				t.Fatalf("ReadAll() error = %v", err)
@@ -125,15 +150,15 @@ func TestSetSemanticFlagsSendCorrectBody(t *testing.T) {
 			if m["hostname"] != "my-router" {
 				t.Fatalf("hostname = %v, want %q", m["hostname"], "my-router")
 			}
-			if m["language"] != "en" {
-				t.Fatalf("language = %v, want %q", m["language"], "en")
+			if got := m["language"]; got != "2" && got != float64(2) {
+				t.Fatalf("language = %v, want %v", got, float64(2))
 			}
 			return jsonResponse(`{"code":0,"message":"saved","data":null}`), nil
 		}),
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"set", "--hostname", "my-router", "--language", "en"})
+	cmd.SetArgs([]string{"set", "--hostname", "my-router", "--language", "2"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -146,8 +171,13 @@ func TestSetSemanticFlagsOverrideData(t *testing.T) {
 	app := cliapp.New(&out, &out)
 	app.Format = output.JSON
 	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-ov"}
+	calls := 0
 	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			calls++
+			if calls == 1 {
+				return jsonResponse(systemBasicBaselineResponse), nil
+			}
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
 				t.Fatalf("ReadAll() error = %v", err)
@@ -174,6 +204,34 @@ func TestSetSemanticFlagsOverrideData(t *testing.T) {
 		t.Fatalf("Execute() error = %v", err)
 	}
 }
+
+const systemBasicBaselineResponse = `{
+  "code": 0,
+  "message": "Success",
+  "results": {
+    "total": 1,
+    "data": [
+      {
+        "id": 1,
+        "hostname": "Router",
+        "language": 1,
+        "time_zone": 8,
+        "time_zone_full": "0800",
+        "switch_nat": 1,
+        "switch_ntp": 1,
+        "switch_ntpd": 0,
+        "switch_ntpserver": 0,
+        "ntpserver_list": "",
+        "ntp_sync_cycle": 60,
+        "link_mode": 0,
+        "lan_nat": 1,
+        "backport": "wan1",
+        "listenport": "lan1",
+        "fast_nat": 0
+      }
+    ]
+  }
+}`
 
 type roundTripFunc func(req *http.Request) (*http.Response, error)
 

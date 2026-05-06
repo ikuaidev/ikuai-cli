@@ -35,8 +35,8 @@ func TestSplitArgs(t *testing.T) {
 		},
 		{
 			name:  "mixed spacing",
-			input: `  system   web-passwd-reset   --ssh-user   admin  `,
-			want:  []string{"system", "web-passwd-reset", "--ssh-user", "admin"},
+			input: `  system   web-admin   accounts   list  `,
+			want:  []string{"system", "web-admin", "accounts", "list"},
 		},
 	}
 
