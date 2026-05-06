@@ -255,7 +255,7 @@ func renderMapOfMapsTable(w io.Writer, m map[string]interface{}, humanTime bool,
 	items := make([]interface{}, 0, len(keys))
 	for _, k := range keys {
 		inner := m[k].(map[string]interface{})
-		row := make(map[string]interface{}, len(inner)+1)
+		row := make(map[string]interface{}, len(inner))
 		row["name"] = k
 		for ik, iv := range inner {
 			if ik != "name" { // Don't overwrite existing "name" field.
