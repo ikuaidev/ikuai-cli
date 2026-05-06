@@ -307,7 +307,10 @@ ikuai-cli log system list --human-time
 ikuai-cli log arp list
 ikuai-cli log auth list
 ikuai-cli log dhcp list
+ikuai-cli log pppoe list
 ikuai-cli log web list
+ikuai-cli log ddns list
+ikuai-cli log notice list
 ikuai-cli log wireless list
 ikuai-cli log system delete --yes
 ```
