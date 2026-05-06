@@ -28,15 +28,28 @@ func TestSystemLogBuildsExpectedQueryParams(t *testing.T) {
 				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/log/system")
 			}
 			q := req.URL.Query()
-			if q.Get("page") != "3" || q.Get("page_size") != "9" || q.Get("filter") != "level==error" || q.Get("order") != "desc" || q.Get("order_by") != "time" {
-				t.Fatalf("unexpected query params: %s", req.URL.RawQuery)
+			for name, want := range map[string]string{
+				"page":     "3",
+				"limit":    "9",
+				"filter":   "level==error",
+				"key":      "level,module",
+				"pattern":  "error",
+				"order":    "desc",
+				"order_by": "timestamp",
+			} {
+				if got := q.Get(name); got != want {
+					t.Fatalf("%s = %q, want %q; raw=%s", name, got, want, req.URL.RawQuery)
+				}
+			}
+			if q.Get("page_size") != "" {
+				t.Fatalf("page_size = %q, want empty; raw=%s", q.Get("page_size"), req.URL.RawQuery)
 			}
 			return jsonResponse(`{"code":0,"data":{"items":[]}}`), nil
 		}),
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"system", "--page", "3", "--page-size", "9", "--filter", "level==error", "--order", "desc", "--order-by", "time"})
+	cmd.SetArgs([]string{"system", "list", "--page", "3", "--page-size", "9", "--filter", "level==error", "--key", "level,module", "--pattern", "error", "--order", "desc", "--order-by", "timestamp"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -68,7 +81,7 @@ func TestSystemLogClearRequestsDelete(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"system-clear"})
+	cmd.SetArgs([]string{"system", "delete", "--yes"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -77,6 +90,27 @@ func TestSystemLogClearRequestsDelete(t *testing.T) {
 	want := "{\"message\":\"cleared\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestSystemLogDeleteRequiresYes(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			t.Fatalf("unexpected HTTP request: %s %s", req.Method, req.URL.String())
+			return nil, nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"system", "delete"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("Execute() error = nil, want confirmation error")
 	}
 }
 
