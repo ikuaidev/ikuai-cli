@@ -113,7 +113,7 @@ ikuai-cli log system list --human-time       # 系统日志
 - **对象组** — IP、IPv6、MAC、端口、协议、域名、时间对象组
 - **无线管理** — Wi-Fi 配置与管理
 - **QoS** — 带宽控制和流量整形
-- **系统维护** — 配置管理、定时任务、远程访问、VRRP、SSH 重置
+- **系统维护** — 配置管理、定时任务、远程访问、VRRP、备份、升级、Web 管理账号
 - **日志** — 系统日志和审计记录
 - **交互模式** — `repl` 模式，支持多级 Tab 补全
 - **结构化输出** — 默认表格；支持 `--format json/yaml`、`--raw`；`--human-time` 显示可读时间；`--wide` / `--columns` 控制列显示
@@ -160,7 +160,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和领域 [skills](./skills/)，让 AI
 | [security](skills/security.md) | ACL、MAC 过滤、L7、URL 过滤、域名黑名单、连接数限制、终端标注 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |
 | [objects](skills/objects.md) | IP、IPv6、MAC、端口、协议、域名、时间对象组 |
-| [system](skills/system.md) | 系统配置、定时任务、远程访问、VRRP、SSH 重置 |
+| [system](skills/system.md) | 系统配置、定时任务、远程访问、VRRP、备份、升级、Web 管理账号 |
 | [batch](skills/batch.md) | 组合工作流：初始化、批量 DHCP、配置备份 |
 
 ### 安装 Skills

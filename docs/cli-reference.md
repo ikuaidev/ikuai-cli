@@ -145,15 +145,39 @@ ikuai-cli users packages delete 1 --yes
 ```bash
 ikuai-cli system get
 ikuai-cli system set --hostname "ikuai-gw"
+ikuai-cli system ntp-sync
 ikuai-cli system schedules list
-ikuai-cli system schedules create --name "NightReboot" --time "04:00"
+ikuai-cli system schedules create --name "NightReboot" --strategy one --cycle-time "2026-12-31" --time "04:00"
+ikuai-cli system schedules update 1 --comment "updated"
+ikuai-cli system schedules toggle 1 --enabled no
+ikuai-cli system schedules delete 1 --yes
 ikuai-cli system remote-access get
-ikuai-cli system remote-access set --data '{"enabled":true}'
+ikuai-cli system remote-access set --ssh 1 --ssh-port 22
 ikuai-cli system vrrp get
+ikuai-cli system vrrp set --enabled no
+ikuai-cli system vrrp start
+ikuai-cli system vrrp stop
 ikuai-cli system alg get
+ikuai-cli system alg set --ftp 1 --sip 1
 ikuai-cli system kernel get
-ikuai-cli system cpufreq get
-ikuai-cli system web-passwd reset --ssh-user root --yes
+ikuai-cli system kernel set --bbr 1
+ikuai-cli system cpufreq list
+ikuai-cli system cpufreq mode get
+ikuai-cli system cpufreq mode set --mode performance --turbo 1
+ikuai-cli system disks list
+ikuai-cli system files list --path "/"
+ikuai-cli system backup list
+ikuai-cli system backup create
+ikuai-cli system backup delete --srcfile "20260506122012.bak" --yes
+ikuai-cli system backup-auto get
+ikuai-cli system backup-auto set --enabled no --strategy week --time "23:59" --cycle-time "1234567" --valid-days 30
+ikuai-cli system upgrade check
+ikuai-cli system upgrade get
+ikuai-cli system upgrade status
+ikuai-cli system web-admin groups list
+ikuai-cli system web-admin groups create --name "readonly" --ip-addr "0.0.0.0/0" --perm-config "monitoring_center:r"
+ikuai-cli system web-admin accounts list
+ikuai-cli system web-admin accounts create --username "readonly" --passwd-md5 "<md5>" --group-id 2 --enabled no
 ```
 
 ## Security
