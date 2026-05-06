@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -90,6 +91,74 @@ func TestSystemLogClearRequestsDelete(t *testing.T) {
 	want := "{\"message\":\"cleared\"}\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestDdnsLogListUsesResultColumn(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.Path != "/api/v4.0/log/ddns" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/log/ddns")
+			}
+			return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":1,"timestamp":1778060866,"domain":"www.ali123.com","interface":"auto","ip_addr":"--","result":"失败","event":"错误: 认证失败"}],"total":1}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"ddns", "list", "--page", "1", "--page-size", "5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "RESULT") || !strings.Contains(got, "失败") {
+		t.Fatalf("ddns table should show result column and value: %q", got)
+	}
+	if strings.Contains(got, "STATUS") {
+		t.Fatalf("ddns table should not show stale status column: %q", got)
+	}
+}
+
+func TestNoticeLogListUsesEventColumn(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.Path != "/api/v4.0/log/notice" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/log/notice")
+			}
+			return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":1,"timestamp":1778064504,"type":"实时通知","ip_addr":"192.168.99.100","event":"已收到通知"}],"total":1}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"notice", "list", "--page", "1", "--page-size", "5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "EVENT") || !strings.Contains(got, "已收到通知") {
+		t.Fatalf("notice table should show event column and value: %q", got)
+	}
+	if strings.Contains(got, "TITLE") || strings.Contains(got, "CONTENT") {
+		t.Fatalf("notice table should not show stale title/content columns: %q", got)
 	}
 }
 

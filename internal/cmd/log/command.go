@@ -18,8 +18,8 @@ var logResources = []logResource{
 	{name: "pppoe", apiPath: "log/pppoe", defaultColumns: []string{"id", "timestamp", "interface", "content"}},
 	{name: "system", apiPath: "log/system", defaultColumns: []string{"id", "timestamp", "content"}},
 	{name: "web", apiPath: "log/web_activity", defaultColumns: []string{"id", "timestamp", "username", "ip_addr", "function", "event"}},
-	{name: "ddns", apiPath: "log/ddns", defaultColumns: []string{"id", "timestamp", "domain", "status", "ip_addr", "message"}},
-	{name: "notice", apiPath: "log/notice", defaultColumns: []string{"id", "timestamp", "type", "title", "content"}},
+	{name: "ddns", apiPath: "log/ddns", defaultColumns: []string{"id", "timestamp", "domain", "result", "ip_addr", "event"}},
+	{name: "notice", apiPath: "log/notice", defaultColumns: []string{"id", "timestamp", "type", "event", "ip_addr"}},
 	{name: "wireless", apiPath: "log/wireless", defaultColumns: []string{"id", "timestamp", "action", "mac", "apmac", "ssid", "errmsg", "signal"}},
 }
 
