@@ -64,6 +64,41 @@ func TestNatListBuildsExpectedQueryParams(t *testing.T) {
 	}
 }
 
+func TestWANListUsesConfigEndpointWithoutPagination(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-wan"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.Path != "/api/v4.0/interfaces/wan-config" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/interfaces/wan-config")
+			}
+			if req.URL.RawQuery != "" {
+				t.Fatalf("query = %q, want empty", req.URL.RawQuery)
+			}
+			return jsonResponse(`{"code":0,"data":[{"id":1,"tagname":"wan1","internet":3,"mtu":1480}],"total":1}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"wan", "list"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	want := `[{"id":1,"internet":3,"mtu":1480,"tagname":"wan1"}]` + "\n"
+	if got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
 func TestDHCPCreateMissingRequiredFlags(t *testing.T) {
 	t.Parallel()
 	var out bytes.Buffer
