@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/api"
@@ -44,6 +45,37 @@ func TestGetRequestsExpectedEndpoint(t *testing.T) {
 	}
 }
 
+func TestGetUsesDefaultColumns(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-authsrv"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":1,"enabled":"no","interface":"lan1","idle_time":60,"max_time":0,"user_auth":1,"coupon_auth":0,"phone_auth":0,"static_pwd":1,"nopasswd":0,"https_redirect":0,"group_key":"secret"}]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"get"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	if !strings.Contains(got, "ENABLED") || !strings.Contains(got, "lan1") {
+		t.Fatalf("auth-server get table should show default columns: %q", got)
+	}
+	if strings.Contains(got, "GROUP_KEY") || strings.Contains(got, "secret") {
+		t.Fatalf("auth-server get table should not show non-default sensitive columns: %q", got)
+	}
+}
+
 func TestSetSendsExpectedJSONBody(t *testing.T) {
 	t.Parallel()
 
@@ -51,21 +83,27 @@ func TestSetSendsExpectedJSONBody(t *testing.T) {
 	app := cliapp.New(&out, &out)
 	app.Format = output.JSON
 	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-authsrv"}
+	seenGet := false
 	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-			if req.Method != http.MethodPut {
-				t.Fatalf("method = %q, want %q", req.Method, http.MethodPut)
-			}
 			if req.URL.String() != "https://router.local/api/v4.0/auth/web/services" {
 				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/auth/web/services")
+			}
+			if req.Method == http.MethodGet {
+				seenGet = true
+				return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":1,"enabled":"no","max_time":0,"idle_time":60,"user_auth":1,"interface":"lan1"}]}}`), nil
+			}
+			if req.Method != http.MethodPut {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodPut)
 			}
 
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
 				t.Fatalf("ReadAll() error = %v", err)
 			}
-			if string(body) != `{"enable":"yes"}` {
-				t.Fatalf("body = %q, want %q", string(body), `{"enable":"yes"}`)
+			want := `{"enabled":"yes","id":1,"idle_time":120,"interface":"lan1","max_time":0,"user_auth":1}`
+			if string(body) != want {
+				t.Fatalf("body = %q, want %q", string(body), want)
 			}
 
 			return jsonResponse(`{"code":0,"message":"saved","data":null}`), nil
@@ -73,9 +111,12 @@ func TestSetSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"set", "--data", `{"enable":"yes"}`})
+	cmd.SetArgs([]string{"set", "--enabled", "yes", "--idle-time", "120"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
+	}
+	if !seenGet {
+		t.Fatal("set should read current config before PUT")
 	}
 
 	got := out.String()
