@@ -130,8 +130,7 @@ func mergeAuthServerChanges(data string, cmd *cobra.Command) (map[string]interfa
 		if !authServerIntegerFields[key] {
 			continue
 		}
-		switch typed := value.(type) {
-		case string:
+		if typed, ok := value.(string); ok {
 			if typed == "" {
 				continue
 			}
