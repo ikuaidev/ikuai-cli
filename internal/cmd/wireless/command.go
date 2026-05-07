@@ -24,6 +24,8 @@ var flagDescs = map[string]string{
 // --- Field maps, addr fields, and defaults for wireless subcommands ---
 
 var (
+	acAPDefaultColumns = []string{"id", "tagname", "ip_addr", "mac", "status", "connected", "online", "version", "ap_model"}
+
 	blacklistFieldMap = map[string]string{
 		"name":    "tagname",
 		"mode":    "mode",
@@ -77,13 +79,15 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		addrFields:          blacklistAddrFields,
 		createDefaults:      blacklistDefaults,
 		defaultColumns:      []string{"id", "tagname", "mode", "lmac", "lssid", "lap", "enabled"},
-		requiredCreateFlags: []string{"name", "ap"},
+		inputFields:         []string{"enabled", "tagname", "mode", "lmac", "lssid", "lap", "week", "time", "comment"},
+		requiredCreateFlags: []string{"name"},
 	}))
 	wirelessCmd.AddCommand(ruleGroup(app, "vlan", "Wireless VLAN rules", "wireless/vlan/rules", ruleGroupOpts{
 		fieldMap:            vlanFieldMap,
 		addrFields:          vlanAddrFields,
 		createDefaults:      vlanDefaults,
 		defaultColumns:      []string{"id", "tagname", "vlanid", "lmac", "lssid", "enabled"},
+		inputFields:         []string{"enabled", "tagname", "vlanid", "lmac", "lssid", "comment"},
 		requiredCreateFlags: []string{"name", "vlan-id"},
 	}))
 	wirelessCmd.AddCommand(acGroup(app))
@@ -95,6 +99,7 @@ type ruleGroupOpts struct {
 	addrFields          map[string]string
 	createDefaults      map[string]interface{}
 	defaultColumns      []string
+	inputFields         []string
 	requiredCreateFlags []string
 }
 
@@ -112,9 +117,9 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			if len(opts.defaultColumns) > 0 {
 				app.DefaultColumns = opts.defaultColumns
 			}
-			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			page, pageSize, _, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath,
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, "", order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -122,7 +127,7 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			return nil
 		},
 	}
-	cliapp.AddListFlags(listCmd)
+	addWirelessRuleListFlags(listCmd)
 
 	createCmd := writeCmd(app, "create", "Create a "+short, false, opts.fieldMap, opts.addrFields, opts.createDefaults,
 		func(body interface{}, id string) (json.RawMessage, error) {
@@ -138,9 +143,33 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 			return origRunE(cmd, args)
 		}
 	}
+	getCmd := &cobra.Command{
+		Use:   "get ID",
+		Short: "Get a " + short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := app.RequireAuth(); err != nil {
+				return err
+			}
+			if len(opts.defaultColumns) > 0 {
+				app.DefaultColumns = opts.defaultColumns
+			}
+			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath+"/"+args[0], nil)
+			if err != nil {
+				return err
+			}
+			app.PrintRaw(raw)
+			return nil
+		},
+	}
 	updateCmd := writeCmd(app, "update ID", "Update a "+short, true, opts.fieldMap, opts.addrFields, nil,
 		func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, body)
+			updates, _ := body.(map[string]interface{})
+			fullBody, err := fullWirelessUpdateBody(app, apiPath, id, updates, opts.inputFields)
+			if err != nil {
+				return nil, err
+			}
+			return app.APIClient.Put(cliapp.APIBase+"/"+apiPath+"/"+id, fullBody)
 		})
 	toggleFieldMap := map[string]string{"enabled": "enabled"}
 	toggleCmd := writeCmd(app, "toggle ID", "Enable/disable a "+short, true, toggleFieldMap, nil, nil,
@@ -150,12 +179,22 @@ func ruleGroup(app *cliapp.Runtime, use, short, apiPath string, opts ruleGroupOp
 
 	group.AddCommand(
 		listCmd,
+		getCmd,
 		createCmd,
 		updateCmd,
 		toggleCmd,
 		deleteByIDCmd(app, "delete ID", "Delete a "+short, "/"+apiPath+"/"),
 	)
 	return group
+}
+
+func addWirelessRuleListFlags(cmd *cobra.Command) {
+	cliapp.AddPaginationFlags(cmd)
+	cmd.Flags().String("order", "", "Sort direction: asc|desc")
+	cmd.Flags().String("order-by", "", "Sort field")
+	_ = cmd.RegisterFlagCompletionFunc("order", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"asc", "desc"}, cobra.ShellCompDirectiveNoFileComp
+	})
 }
 
 func acGroup(app *cliapp.Runtime) *cobra.Command {
@@ -177,11 +216,6 @@ func acGroup(app *cliapp.Runtime) *cobra.Command {
 				return nil
 			},
 		},
-		configCmdWithFlags(app, "set", "Update AC service configuration", func(c *cobra.Command) {
-			c.Flags().String("ac-status", "", "AC service status (0=off, 1=on)")
-		}, map[string]string{"ac-status": "ac_status"}, func(body interface{}, id string) (json.RawMessage, error) {
-			return app.APIClient.Put(cliapp.APIBase+"/network/ac/services", body)
-		}),
 		&cobra.Command{
 			Use:   "start",
 			Short: "Start AC",
@@ -228,9 +262,8 @@ func acAPListCmd(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
-			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/ac/ap-config",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+			app.DefaultColumns = acAPDefaultColumns
+			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/ac/ap-config", nil)
 			if err != nil {
 				return err
 			}
@@ -238,7 +271,6 @@ func acAPListCmd(app *cliapp.Runtime) *cobra.Command {
 			return nil
 		},
 	}
-	cliapp.AddListFlags(c)
 	return c
 }
 
@@ -251,6 +283,7 @@ func acAPGetCmd(app *cliapp.Runtime) *cobra.Command {
 			if err := app.RequireAuth(); err != nil {
 				return err
 			}
+			app.DefaultColumns = acAPDefaultColumns
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/ac/ap-config/"+args[0], nil)
 			if err != nil {
 				return err
@@ -284,7 +317,12 @@ func acAPUpdateCmd(app *cliapp.Runtime) *cobra.Command {
 		c.Flags().String("channel", "", "2.4G channel (0=auto)")
 		c.Flags().String("comment", "", "Comment")
 	}, apFieldMap, func(body interface{}, id string) (json.RawMessage, error) {
-		return app.APIClient.Put(cliapp.APIBase+"/network/ac/ap-config/"+id, body)
+		updates, _ := body.(map[string]interface{})
+		fullBody, err := fullWirelessUpdateBody(app, "network/ac/ap-config", id, updates, nil)
+		if err != nil {
+			return nil, err
+		}
+		return app.APIClient.Put(cliapp.APIBase+"/network/ac/ap-config/"+id, fullBody)
 	})
 }
 
@@ -439,4 +477,70 @@ func configCmdWithFlags(app *cliapp.Runtime, use, short string, addFlags func(*c
 		return nil
 	}
 	return c
+}
+
+func fullWirelessUpdateBody(app *cliapp.Runtime, apiPath, id string, updates map[string]interface{}, inputFields []string) (map[string]interface{}, error) {
+	readClient := app.APIClient
+	if app.APIClient.DryRun {
+		readClient = app.NewClient(app.Session.BaseURL, app.Session.Token)
+	}
+	raw, err := readClient.Get(cliapp.APIBase+"/"+apiPath+"/"+id, nil)
+	if err != nil {
+		return nil, err
+	}
+	current, err := wirelessInputBodyFromGet(raw, inputFields)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range updates {
+		current[k] = v
+	}
+	return current, nil
+}
+
+func wirelessInputBodyFromGet(raw json.RawMessage, inputFields []string) (map[string]interface{}, error) {
+	var value interface{}
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, err
+	}
+	body, ok := findWirelessObject(value)
+	if !ok {
+		return nil, &cliapp.ValidationError{Message: "unexpected wireless get response"}
+	}
+	if len(inputFields) == 0 {
+		result := map[string]interface{}{}
+		for k, v := range body {
+			result[k] = v
+		}
+		return result, nil
+	}
+	result := map[string]interface{}{}
+	for _, key := range inputFields {
+		if value, ok := body[key]; ok {
+			result[key] = value
+		}
+	}
+	return result, nil
+}
+
+func findWirelessObject(value interface{}) (map[string]interface{}, bool) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if _, ok := typed["tagname"]; ok {
+			return typed, true
+		}
+		for _, key := range []string{"data", "results"} {
+			if nested, ok := typed[key]; ok {
+				if found, ok := findWirelessObject(nested); ok {
+					return found, true
+				}
+			}
+		}
+	case []interface{}:
+		if len(typed) == 0 {
+			return nil, false
+		}
+		return findWirelessObject(typed[0])
+	}
+	return nil, false
 }

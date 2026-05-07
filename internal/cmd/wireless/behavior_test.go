@@ -31,11 +31,14 @@ func TestBlacklistListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "3" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "3")
 			}
-			if q.Get("page_size") != "18" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "18")
+			if q.Get("limit") != "18" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "18")
 			}
-			if q.Get("filter") != "enabled==yes" {
-				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==yes")
+			if q.Get("page_size") != "" {
+				t.Fatalf("page_size should not be sent: %v", q)
+			}
+			if q.Get("filter") != "" {
+				t.Fatalf("filter should not be sent: %v", q)
 			}
 			if q.Get("order") != "desc" {
 				t.Fatalf("order = %q, want %q", q.Get("order"), "desc")
@@ -51,7 +54,7 @@ func TestBlacklistListBuildsExpectedQueryParams(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"blacklist", "list", "--page", "3", "--page-size", "18", "--filter", "enabled==yes", "--order", "desc", "--order-by", "mac"})
+	cmd.SetArgs([]string{"blacklist", "list", "--page", "3", "--page-size", "18", "--order", "desc", "--order-by", "mac"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -63,7 +66,18 @@ func TestBlacklistListBuildsExpectedQueryParams(t *testing.T) {
 	}
 }
 
-func TestACSetSendsExpectedJSONBody(t *testing.T) {
+func TestBlacklistListOmitsUnsupportedFilterFlag(t *testing.T) {
+	t.Parallel()
+
+	cmd := New(cliapp.New(io.Discard, io.Discard))
+	cmd.SetArgs([]string{"blacklist", "list", "--filter", "enabled==yes"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("Execute() error = nil, want unsupported flag error")
+	}
+}
+
+func TestVlanGetRequestsExpectedEndpoint(t *testing.T) {
 	t.Parallel()
 
 	var out bytes.Buffer
@@ -72,19 +86,57 @@ func TestACSetSendsExpectedJSONBody(t *testing.T) {
 	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-wifi"}
 	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.String() != "https://router.local/api/v4.0/wireless/vlan/rules/9" {
+				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/wireless/vlan/rules/9")
+			}
+			return jsonResponse(`{"code":0,"data":[{"id":9,"tagname":"iot","vlanid":100}]}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"vlan", "get", "9"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	want := `[{"id":9,"tagname":"iot","vlanid":100}]` + "\n"
+	if got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestVlanUpdateMergesCurrentConfig(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-wifi"}
+	seenGet := false
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.String() != "https://router.local/api/v4.0/wireless/vlan/rules/9" {
+				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/wireless/vlan/rules/9")
+			}
+			if req.Method == http.MethodGet {
+				seenGet = true
+				return jsonResponse(`{"code":0,"data":[{"id":9,"enabled":"yes","tagname":"iot","vlanid":100,"lmac":{"custom":["00:11:22:33:44:55"],"object":[]},"lssid":"ALL","comment":""}]}`), nil
+			}
 			if req.Method != http.MethodPut {
 				t.Fatalf("method = %q, want %q", req.Method, http.MethodPut)
-			}
-			if req.URL.String() != "https://router.local/api/v4.0/network/ac/services" {
-				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/network/ac/services")
 			}
 
 			body, err := io.ReadAll(req.Body)
 			if err != nil {
 				t.Fatalf("ReadAll() error = %v", err)
 			}
-			if string(body) != `{"enable":"yes"}` {
-				t.Fatalf("body = %q, want %q", string(body), `{"enable":"yes"}`)
+			want := `{"comment":"updated","enabled":"yes","lmac":{"custom":["00:11:22:33:44:55"],"object":[]},"lssid":"ALL","tagname":"iot","vlanid":101}`
+			if string(body) != want {
+				t.Fatalf("body = %q, want %q", string(body), want)
 			}
 
 			return jsonResponse(`{"code":0,"message":"saved","data":null}`), nil
@@ -92,9 +144,12 @@ func TestACSetSendsExpectedJSONBody(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"ac", "set", "--data", `{"enable":"yes"}`})
+	cmd.SetArgs([]string{"vlan", "update", "9", "--vlan-id", "101", "--comment", "updated"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
+	}
+	if !seenGet {
+		t.Fatal("update should read current config before PUT")
 	}
 
 	got := out.String()

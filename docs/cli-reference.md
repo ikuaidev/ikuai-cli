@@ -319,8 +319,23 @@ ikuai-cli log system delete --yes
 
 ```bash
 ikuai-cli wireless ac get
+ikuai-cli wireless ac start
+ikuai-cli wireless ac stop
+ikuai-cli wireless ac ap-list
+ikuai-cli wireless ac ap-get <ID>
+ikuai-cli wireless ac ap-update <ID> --comment "updated"
 ikuai-cli wireless blacklist list
+ikuai-cli wireless blacklist get <ID>
+ikuai-cli wireless blacklist create --name "block1" --mac "00:11:22:33:44:55"
+ikuai-cli wireless blacklist update <ID> --comment "updated"
+ikuai-cli wireless blacklist toggle <ID> --enabled no
+ikuai-cli wireless blacklist delete <ID> --yes
 ikuai-cli wireless vlan list
+ikuai-cli wireless vlan get <ID>
+ikuai-cli wireless vlan create --name "iot_vlan" --vlan-id 100 --mac "00:11:22:33:44:55"
+ikuai-cli wireless vlan update <ID> --comment "updated"
+ikuai-cli wireless vlan toggle <ID> --enabled no
+ikuai-cli wireless vlan delete <ID> --yes
 ```
 
 ## Advanced
