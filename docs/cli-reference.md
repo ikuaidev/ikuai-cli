@@ -357,7 +357,7 @@ ikuai-cli advanced snmpd set --enabled yes --listen-port 161 --version 2 --commu
 
 ```bash
 ikuai-cli auth-server get
-ikuai-cli auth-server set --data '{"enabled":true}'
+ikuai-cli auth-server set --idle-time 60 --max-time 0
 ```
 
 ## Objects
