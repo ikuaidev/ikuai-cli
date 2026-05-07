@@ -61,10 +61,10 @@ ikuai-cli network dhcp6 access-rule delete <ID> --yes --format json
 ## WAN / LAN / 接口
 
 ```bash
-ikuai-cli network wan --format json
-ikuai-cli network wan-vlan --format json
-ikuai-cli network lan --format json
-ikuai-cli network physical --format json
+ikuai-cli network wan list --format json
+ikuai-cli network wan-vlan list --format json
+ikuai-cli network lan list --format json
+ikuai-cli network physical list --format json
 ```
 
 ## VLAN

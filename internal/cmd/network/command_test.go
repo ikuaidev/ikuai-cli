@@ -17,7 +17,12 @@ func TestNewRegistersExpectedNetworkCommands(t *testing.T) {
 		args     []string
 		wantUse  string
 		wantFlag string
+		noFlag   string
 	}{
+		{name: "wan list no pagination", args: []string{"wan", "list"}, wantUse: "list", noFlag: "page"},
+		{name: "wan-vlan list no pagination", args: []string{"wan-vlan", "list"}, wantUse: "list", noFlag: "page"},
+		{name: "lan list no pagination", args: []string{"lan", "list"}, wantUse: "list", noFlag: "page-size"},
+		{name: "physical list no pagination", args: []string{"physical", "list"}, wantUse: "list", noFlag: "page"},
 		{name: "dns set data flag", args: []string{"dns", "set"}, wantUse: "set", wantFlag: "data"},
 		{name: "dns proxy list pagination", args: []string{"dns", "proxy", "list"}, wantUse: "list", wantFlag: "page-size"},
 		{name: "dhcp list pagination", args: []string{"dhcp", "list"}, wantUse: "list", wantFlag: "page"},
@@ -40,8 +45,11 @@ func TestNewRegistersExpectedNetworkCommands(t *testing.T) {
 			if found.Name() != tt.wantUse {
 				t.Fatalf("Find(%v) command = %q, want %q", tt.args, found.Name(), tt.wantUse)
 			}
-			if found.Flags().Lookup(tt.wantFlag) == nil {
+			if tt.wantFlag != "" && found.Flags().Lookup(tt.wantFlag) == nil {
 				t.Fatalf("Find(%v) missing flag %q", tt.args, tt.wantFlag)
+			}
+			if tt.noFlag != "" && found.Flags().Lookup(tt.noFlag) != nil {
+				t.Fatalf("Find(%v) unexpectedly has flag %q", tt.args, tt.noFlag)
 			}
 		})
 	}

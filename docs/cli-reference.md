@@ -105,8 +105,10 @@ ikuai-cli network dns get
 ikuai-cli network dns set --dns1 114.114.114.114 --dns2 8.8.8.8
 
 # WAN / LAN
-ikuai-cli network wan
-ikuai-cli network lan
+ikuai-cli network wan list
+ikuai-cli network wan-vlan list
+ikuai-cli network lan list
+ikuai-cli network physical list
 
 # DHCP
 ikuai-cli network dhcp list --page 1 --page-size 50

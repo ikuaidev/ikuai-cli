@@ -25,6 +25,21 @@ var natFlagDescs = map[string]string{
 	"dst-port":      "Destination port (comma-separated)",
 }
 
+func readOnlyNetworkRunE(app *cliapp.Runtime, apiPath string, defaultColumns []string) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		if err := app.RequireAuth(); err != nil {
+			return err
+		}
+		app.DefaultColumns = defaultColumns
+		raw, err := app.APIClient.Get(cliapp.APIBase+apiPath, nil)
+		if err != nil {
+			return err
+		}
+		app.PrintRaw(raw)
+		return nil
+	}
+}
+
 func New(app *cliapp.Runtime) *cobra.Command {
 	networkCmd := &cobra.Command{
 		Use:   "network",
@@ -36,73 +51,21 @@ func New(app *cliapp.Runtime) *cobra.Command {
   ikuai-cli network nat list`,
 	}
 
-	networkWANCmd := &cobra.Command{
-		Use:   "wan",
-		Short: "WAN interface config",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireAuth(); err != nil {
-				return err
-			}
-			app.DefaultColumns = []string{"id", "tagname", "internet", "ip_mask", "gateway", "mac", "mtu", "speed", "enabled"}
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/interfaces/wan-config", nil)
-			if err != nil {
-				return err
-			}
-			app.PrintRaw(raw)
-			return nil
-		},
-	}
+	wanRunE := readOnlyNetworkRunE(app, "/interfaces/wan-config", []string{"id", "tagname", "internet", "ip_mask", "gateway", "mac", "mtu", "speed"})
+	networkWANCmd := &cobra.Command{Use: "wan", Short: "WAN interface config", Args: cobra.NoArgs, RunE: wanRunE}
+	networkWANListCmd := &cobra.Command{Use: "list", Short: "List WAN interface configs", Args: cobra.NoArgs, RunE: wanRunE}
 
-	networkWANVLANCmd := &cobra.Command{
-		Use:   "wan-vlan",
-		Short: "WAN VLAN config",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireAuth(); err != nil {
-				return err
-			}
-			app.DefaultColumns = []string{"id", "tagname", "interface", "vlan_id", "ip_addr", "netmask", "gateway", "enabled"}
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/interfaces/wan-vlan-config", nil)
-			if err != nil {
-				return err
-			}
-			app.PrintRaw(raw)
-			return nil
-		},
-	}
+	wanVLANRunE := readOnlyNetworkRunE(app, "/interfaces/wan-vlan-config", []string{"id", "vlan_name", "interface", "vlan_id", "ip_mask", "gateway", "enabled"})
+	networkWANVLANCmd := &cobra.Command{Use: "wan-vlan", Short: "WAN VLAN config", Args: cobra.NoArgs, RunE: wanVLANRunE}
+	networkWANVLANListCmd := &cobra.Command{Use: "list", Short: "List WAN VLAN configs", Args: cobra.NoArgs, RunE: wanVLANRunE}
 
-	networkLANCmd := &cobra.Command{
-		Use:   "lan",
-		Short: "LAN interface config",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireAuth(); err != nil {
-				return err
-			}
-			app.DefaultColumns = []string{"id", "tagname", "ip_mask", "bandeth", "dhcp_server", "vlan"}
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/interfaces/lan-config", nil)
-			if err != nil {
-				return err
-			}
-			app.PrintRaw(raw)
-			return nil
-		},
-	}
+	lanRunE := readOnlyNetworkRunE(app, "/interfaces/lan-config", []string{"id", "tagname", "ip_mask", "bandeth", "dhcp_server", "vlan"})
+	networkLANCmd := &cobra.Command{Use: "lan", Short: "LAN interface config", Args: cobra.NoArgs, RunE: lanRunE}
+	networkLANListCmd := &cobra.Command{Use: "list", Short: "List LAN interface configs", Args: cobra.NoArgs, RunE: lanRunE}
 
-	networkPhysicalCmd := &cobra.Command{
-		Use:   "physical",
-		Short: "Physical NIC info",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.RequireAuth(); err != nil {
-				return err
-			}
-			app.DefaultColumns = []string{"name", "interface", "link", "speed", "duplex", "mac", "type", "driver"}
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/interfaces/physical", nil)
-			if err != nil {
-				return err
-			}
-			app.PrintRaw(raw)
-			return nil
-		},
-	}
+	physicalRunE := readOnlyNetworkRunE(app, "/interfaces/physical", []string{"name", "interface", "link", "speed", "duplex", "mac", "type", "driver"})
+	networkPhysicalCmd := &cobra.Command{Use: "physical", Short: "Physical NIC info", Args: cobra.NoArgs, RunE: physicalRunE}
+	networkPhysicalListCmd := &cobra.Command{Use: "list", Short: "List physical NIC info", Args: cobra.NoArgs, RunE: physicalRunE}
 
 	networkDNSCmd := &cobra.Command{Use: "dns", Short: "DNS config"}
 
@@ -1042,6 +1005,10 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		},
 	}
 
+	networkWANCmd.AddCommand(networkWANListCmd)
+	networkWANVLANCmd.AddCommand(networkWANVLANListCmd)
+	networkLANCmd.AddCommand(networkLANListCmd)
+	networkPhysicalCmd.AddCommand(networkPhysicalListCmd)
 	networkCmd.AddCommand(networkWANCmd, networkWANVLANCmd, networkLANCmd, networkPhysicalCmd)
 
 	networkCmd.AddCommand(networkDNSCmd)
