@@ -105,6 +105,7 @@ var integerAPIFields = map[string]bool{
 	"mtu": true, "mru": true, "lcp_echo_interval": true,
 	"lcp_echo_failure": true, "maxconnect": true, "restart_timer": true,
 	"acl_mac": true, "mode": true,
+	"vlanid": true, "channel": true,
 	"type": true, "iface_band": true, "dst_type": true,
 	"src_addr_inv": true, "dst_addr_inv": true,
 	"noping_lan": true, "noping_wan": true, "notracert": true,

@@ -160,6 +160,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和领域 [skills](./skills/)，让 AI
 | [security](skills/security.md) | ACL、MAC 过滤、L7、URL 过滤、域名黑名单、连接数限制、终端标注 |
 | [vpn](skills/vpn.md) | PPTP、L2TP、OpenVPN、IKEv2、IPSec、WireGuard |
 | [objects](skills/objects.md) | IP、IPv6、MAC、端口、协议、域名、时间对象组 |
+| [wireless](skills/wireless.md) | 无线黑白名单、无线 VLAN 和 AC 管理 |
 | [system](skills/system.md) | 系统配置、定时任务、远程访问、VRRP、备份、升级、Web 管理账号 |
 | [auth-server](skills/auth-server.md) | Web 认证服务配置 |
 | [batch](skills/batch.md) | 组合工作流：初始化、批量 DHCP、配置备份 |

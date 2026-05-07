@@ -160,6 +160,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and domain-specific [skills](./s
 | [security](skills/security.md) | ACL, MAC filter, L7, URL filter, domain blacklist, peerconn, terminals |
 | [vpn](skills/vpn.md) | PPTP, L2TP, OpenVPN, IKEv2, IPSec, WireGuard |
 | [objects](skills/objects.md) | IP, IPv6, MAC, port, protocol, domain, time object groups |
+| [wireless](skills/wireless.md) | Wireless blacklist, VLAN rules, and AC management |
 | [system](skills/system.md) | Config, schedules, remote access, VRRP, backup, upgrade, web admin |
 | [auth-server](skills/auth-server.md) | Web authentication service config |
 | [batch](skills/batch.md) | Multi-command workflows: init, bulk DHCP, backup |
