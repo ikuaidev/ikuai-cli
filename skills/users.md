@@ -9,6 +9,7 @@ description: iKuai user management — auth accounts CRUD, online sessions, kick
 
 ```bash
 ikuai-cli users online --format json
+ikuai-cli users online get <ID> --format json
 ikuai-cli users kick <ID> --yes --format json
 ```
 

@@ -3,6 +3,7 @@ CLAUDE.md
 AGENTS.md
 .claude/
 document/
+/web-api-yaml/
 
 # Build artifacts
 dist/

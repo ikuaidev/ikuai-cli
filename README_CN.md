@@ -96,6 +96,7 @@ ikuai-cli network dns get                    # DNS 配置
 ikuai-cli network dns proxy create --domain example.com --dns-addr 8.8.8.8 --parse-type ipv4
 ikuai-cli network pppoe set --comment maintenance --mtu 1480 --mru 1480
 ikuai-cli users online                       # 在线用户
+ikuai-cli users online get 1                 # 在线用户详情
 ikuai-cli security acl list                  # 安全策略
 ikuai-cli log system list --human-time       # 系统日志
 ```
@@ -170,7 +171,7 @@ ikuai-cli 内置 [`SKILL.md`](./SKILL.md) 和领域 [skills](./skills/)，让 AI
 **[Skills CLI](https://github.com/vercel-labs/skills)（推荐）：**
 
 ```bash
-npx skills add ikuai/ikuai-cli
+npx skills add ikuaidev/ikuai-cli
 ```
 
 | 参数 | 说明 |

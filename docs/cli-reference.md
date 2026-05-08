@@ -135,6 +135,7 @@ ikuai-cli users accounts create --username "guest" --password "guest123"
 ikuai-cli users accounts update 1 --comment "updated"
 ikuai-cli users accounts delete 1 --yes
 ikuai-cli users online
+ikuai-cli users online get 1
 ikuai-cli users kick 1 --yes
 ikuai-cli users packages list
 ikuai-cli users packages create --name "month-card" --time "1m" --price 100 --up-speed 500 --down-speed 1000
@@ -374,7 +375,6 @@ ikuai-cli advanced snmpd set --enabled yes --listen-port 161 --version 2 --commu
 
 ```bash
 ikuai-cli auth-server get
-ikuai-cli auth-server set --idle-time 60 --max-time 0
 ```
 
 ## Objects

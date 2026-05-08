@@ -59,7 +59,7 @@ Reference implementation:
 | `vpn` | covered | OpenVPN client listing and WireGuard peer creation covered |
 | `wireless` | covered | blacklist listing and AC service update covered |
 | `advanced` | covered | advanced-service user listing and SNMPD update covered |
-| `auth-server` | covered | auth web service get/set covered |
+| `auth-server` | covered | auth web service get covered |
 | `log` | covered | log listing and clear behavior covered |
 
 These tests validate request method, path, query parameters, JSON body shape, and output behavior at the CLI layer.
