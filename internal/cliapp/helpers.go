@@ -82,6 +82,8 @@ var integerAPIFields = map[string]bool{
 	"ntp_sync_cycle": true, "link_mode": true, "lan_nat": true, "fast_nat": true,
 	"open_telnetd": true, "open_wanweb": true, "open_sshd": true,
 	"open_ftp": true, "ftp_port": true, "ftp_access": true, "force_https": true,
+	"ssl_on": true, "autoindex": true, "access": true, "wsdd2": true,
+	"listen_port": true, "version": true,
 	"interval": true, "auto_sync": true, "single_line": true,
 	"ignore_wanstatus": true, "support_ftp": true, "support_tftp": true,
 	"support_sip": true, "support_h323": true, "valid_days": true,
