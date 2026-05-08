@@ -85,6 +85,30 @@ func TestMergeDataWithFlags_NumericPreservation(t *testing.T) {
 	}
 }
 
+func TestMergeDataWithFlags_AdvancedIntegerFields(t *testing.T) {
+	cmd := &cobra.Command{}
+	for _, name := range []string{"ssl", "autoindex", "access", "wsdd2", "listen-port", "version"} {
+		cmd.Flags().String(name, "", "")
+		_ = cmd.Flags().Set(name, "1")
+	}
+	result, err := MergeDataWithFlags("{}", cmd, map[string]string{
+		"ssl":         "ssl_on",
+		"autoindex":   "autoindex",
+		"access":      "access",
+		"wsdd2":       "wsdd2",
+		"listen-port": "listen_port",
+		"version":     "version",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"ssl_on", "autoindex", "access", "wsdd2", "listen_port", "version"} {
+		if _, ok := result[field].(int64); !ok {
+			t.Fatalf("%s type = %T, want int64, result=%v", field, result[field], result)
+		}
+	}
+}
+
 func TestMergeDataWithFlags_StringNotCoerced(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.Flags().String("name", "", "")
