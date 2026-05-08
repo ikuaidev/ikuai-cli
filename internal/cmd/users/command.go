@@ -137,6 +137,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		},
 	}
 	addOnlineListFlags(onlineCmd)
+	onlineCmd.AddCommand(getByIDCmd(app, "get ID", "Get a single online session", "/auth/online-users/", onlineDefaultColumns))
 	usersCmd.AddCommand(onlineCmd)
 
 	kickCmd := &cobra.Command{

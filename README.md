@@ -96,6 +96,7 @@ ikuai-cli network dns get                    # DNS config
 ikuai-cli network dns proxy create --domain example.com --dns-addr 8.8.8.8 --parse-type ipv4
 ikuai-cli network pppoe set --comment maintenance --mtu 1480 --mru 1480
 ikuai-cli users online                       # Online users
+ikuai-cli users online get 1                 # Online user detail
 ikuai-cli security acl list                  # Security rules
 ikuai-cli log system list --human-time       # System logs
 ```
@@ -170,7 +171,7 @@ ikuai-cli ships with a [`SKILL.md`](./SKILL.md) and domain-specific [skills](./s
 **[Skills CLI](https://github.com/vercel-labs/skills) (Recommended):**
 
 ```bash
-npx skills add ikuai/ikuai-cli
+npx skills add ikuaidev/ikuai-cli
 ```
 
 | Flag | Description |

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
 	"github.com/ikuaidev/ikuai-cli/internal/output"
 	"github.com/ikuaidev/ikuai-cli/internal/session"
+	"github.com/spf13/cobra"
 )
 
 func TestGetRequestsExpectedEndpoint(t *testing.T) {
@@ -76,53 +79,67 @@ func TestGetUsesDefaultColumns(t *testing.T) {
 	}
 }
 
-func TestSetSendsExpectedJSONBody(t *testing.T) {
+func TestAuthServerDoesNotExposeSetWithoutYAMLPut(t *testing.T) {
 	t.Parallel()
 
 	var out bytes.Buffer
 	app := cliapp.New(&out, &out)
-	app.Format = output.JSON
-	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-authsrv"}
-	seenGet := false
-	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
-		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-			if req.URL.String() != "https://router.local/api/v4.0/auth/web/services" {
-				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/auth/web/services")
-			}
-			if req.Method == http.MethodGet {
-				seenGet = true
-				return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":1,"enabled":"no","max_time":0,"idle_time":60,"user_auth":1,"interface":"lan1"}]}}`), nil
-			}
-			if req.Method != http.MethodPut {
-				t.Fatalf("method = %q, want %q", req.Method, http.MethodPut)
-			}
-
-			body, err := io.ReadAll(req.Body)
-			if err != nil {
-				t.Fatalf("ReadAll() error = %v", err)
-			}
-			want := `{"enabled":"yes","id":1,"idle_time":120,"interface":"lan1","max_time":0,"user_auth":1}`
-			if string(body) != want {
-				t.Fatalf("body = %q, want %q", string(body), want)
-			}
-
-			return jsonResponse(`{"code":0,"message":"saved","data":null}`), nil
-		}),
-	})
-
 	cmd := New(app)
-	cmd.SetArgs([]string{"set", "--enabled", "yes", "--idle-time", "120"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("Execute() error = %v", err)
-	}
-	if !seenGet {
-		t.Fatal("set should read current config before PUT")
+	if findSubcommand(cmd, "set") != nil {
+		t.Fatal("auth-server set must not be exposed while YAML lacks PUT /api/v4.0/auth/web/services")
 	}
 
-	got := out.String()
-	want := "{\"message\":\"saved\"}\n"
-	if got != want {
-		t.Fatalf("output = %q, want %q", got, want)
+	root, err := findRepoRoot()
+	if err != nil {
+		t.Skipf("repo root not found: %v", err)
+	}
+	yamlPath := filepath.Join(root, "web-api-yaml", "yaml", "auth", "auth-web-services.yaml")
+	yamlBody, err := os.ReadFile(yamlPath) // #nosec G304 -- test reads a fixed repository fixture path.
+	if err != nil {
+		t.Skipf("YAML contract not available at %s: %v", yamlPath, err)
+	}
+	if authServerYAMLDeclaresPut(string(yamlBody)) {
+		t.Fatal("YAML now declares PUT /api/v4.0/auth/web/services; update CLI and this guard test intentionally")
+	}
+}
+
+func authServerYAMLDeclaresPut(body string) bool {
+	inPath := false
+	for _, line := range strings.Split(body, "\n") {
+		if strings.HasPrefix(line, "  /api/v4.0/") {
+			inPath = strings.TrimSuffix(strings.TrimSpace(line), ":") == "/api/v4.0/auth/web/services"
+			continue
+		}
+		if inPath && strings.TrimSpace(line) == "put:" {
+			return true
+		}
+	}
+	return false
+}
+
+func findSubcommand(cmd *cobra.Command, name string) *cobra.Command {
+	for _, child := range cmd.Commands() {
+		if child.Name() == name {
+			return child
+		}
+	}
+	return nil
+}
+
+func findRepoRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", os.ErrNotExist
+		}
+		dir = parent
 	}
 }
 

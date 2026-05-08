@@ -108,6 +108,38 @@ func TestOnlineListBuildsExpectedQueryParams(t *testing.T) {
 	}
 }
 
+func TestOnlineGetFetchesOnlineUser(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-users"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.String() != "https://router.local/api/v4.0/auth/online-users/42" {
+				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/auth/online-users/42")
+			}
+			return jsonResponse(`{"code":0,"data":{"id":42,"username":"alice"}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"online", "get", "42"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	want := "{\"id\":42,\"username\":\"alice\"}\n"
+	if got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
 func TestKickDeletesOnlineUser(t *testing.T) {
 	t.Parallel()
 

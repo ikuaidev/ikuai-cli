@@ -29,7 +29,7 @@ var helpGroups = []struct{ name, desc string }{
 	{"users", "User management (accounts, online, kick, packages)"},
 	{"log", "System logs (arp, auth, dhcp, system, web, wireless ...)"},
 	{"system", "System config (get, schedules, remote-access, vrrp, backup, upgrade, web-admin)"},
-	{"auth-server", "Web auth server (get, set)"},
+	{"auth-server", "Web auth server (get)"},
 	{"wireless", "Wireless control (blacklist, vlan, ac)"},
 	{"advanced", "Advanced services (ftp, http, samba, snmpd)"},
 	{"completion", "Generate shell completion scripts"},

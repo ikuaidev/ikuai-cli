@@ -468,7 +468,7 @@ func systemWebAdminCmd(app *cliapp.Runtime) *cobra.Command {
 	accounts.AddCommand(webAdminCRUD(app, "account", "/system/web-admin/accounts", webAdminAccountMap, webAdminAccountFields,
 		[]string{"id", "username", "enabled", "group_id", "force", "interval", "sesstimeout", "comment"}, []string{"username", "passwd-md5", "group-id"}, addWebAdminAccountFlags)...)
 
-	passwordStatus := readCommand(app, "password-status", "Get password status", "/system/web-admin/accounts/password-status",
+	passwordStatus := readCommand(app, "password-status", "Get password status", "/system/web-admin/password-status",
 		[]string{"mod_passwd"}, func(cmd *cobra.Command) map[string]string {
 			username, _ := cmd.Flags().GetString("username")
 			return map[string]string{"username": username}
