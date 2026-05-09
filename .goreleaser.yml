@@ -8,7 +8,7 @@ builds:
     binary: ikuai-cli
     ldflags:
       - -s -w
-      - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Version={{ .Version }}
+      - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Version={{ .Tag }}
       - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Commit={{ .Commit }}
       - -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Date={{ .Date }}
     goos:
