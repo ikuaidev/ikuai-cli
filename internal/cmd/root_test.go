@@ -63,7 +63,7 @@ func TestVersionWithFormatJSON(t *testing.T) {
 	}
 }
 
-func TestVersionDefaultsToTableOutput(t *testing.T) {
+func TestVersionDefaultsToHumanText(t *testing.T) {
 	testRootCommand(t)
 
 	oldVersion, oldCommit, oldDate := buildinfo.Version, buildinfo.Commit, buildinfo.Date
@@ -83,12 +83,11 @@ func TestVersionDefaultsToTableOutput(t *testing.T) {
 	}
 
 	got := out.String()
-	// Default format is table — should show key-value pairs, not JSON braces.
 	if strings.Contains(got, "{") {
-		t.Fatalf("default output should be table, not JSON: %q", got)
+		t.Fatalf("default output should be human text, not JSON: %q", got)
 	}
-	if !strings.Contains(got, "0.2.0") {
-		t.Fatalf("table output missing version: %q", got)
+	if !strings.HasPrefix(got, "ikuai-cli 0.2.0\n") {
+		t.Fatalf("human output should start with version: %q", got)
 	}
 }
 

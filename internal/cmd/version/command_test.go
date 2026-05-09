@@ -35,7 +35,7 @@ func TestVersionCommandWithFormatJSON(t *testing.T) {
 	}
 }
 
-func TestVersionCommandDefaultsToTable(t *testing.T) {
+func TestVersionCommandDefaultsToHumanText(t *testing.T) {
 	oldVersion, oldCommit, oldDate := buildinfo.Version, buildinfo.Commit, buildinfo.Date
 	buildinfo.Version = "2.0.0"
 	buildinfo.Commit = "fedcba9"
@@ -53,14 +53,28 @@ func TestVersionCommandDefaultsToTable(t *testing.T) {
 	}
 
 	got := out.String()
-	// Default is table — should not contain JSON braces.
 	if strings.Contains(got, "{") {
-		t.Fatalf("default output should be table, not JSON: %q", got)
+		t.Fatalf("default output should be human text, not JSON: %q", got)
 	}
-	if !strings.Contains(got, "2.0.0") {
-		t.Fatalf("table output missing version: %q", got)
+	if !strings.HasPrefix(got, "ikuai-cli 2.0.0\n") {
+		t.Fatalf("human output should start with version: %q", got)
 	}
-	if !strings.Contains(got, "fedcba9") {
-		t.Fatalf("table output missing commit: %q", got)
+	if !strings.Contains(got, "commit: fedcba9") {
+		t.Fatalf("human output missing commit: %q", got)
+	}
+	if !strings.Contains(got, "built: 2026-04-07T10:00:00Z") {
+		t.Fatalf("human output missing build date: %q", got)
+	}
+}
+
+func TestVersionCommandRejectsExtraArgs(t *testing.T) {
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"extra"})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("Execute() error = nil, want error")
 	}
 }

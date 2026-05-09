@@ -1,7 +1,7 @@
 BINARY = ikuai-cli
 CMD    = ./cmd/ikuai-cli
 DIST   = dist
-VERSION ?= dev
+VERSION ?= $(shell git describe --tags --exact-match 2>/dev/null || echo dev)
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 DATE    ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS = -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Version=$(VERSION) -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Commit=$(COMMIT) -X github.com/ikuaidev/ikuai-cli/internal/buildinfo.Date=$(DATE)
