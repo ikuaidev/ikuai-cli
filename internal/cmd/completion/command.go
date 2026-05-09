@@ -18,6 +18,10 @@ Supported shells:
   zsh
   fish
   powershell`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 	}
 
 	completionCmd.AddCommand(
