@@ -402,6 +402,7 @@ ikuai-cli objects time list --page 1 --page-size 20
 
 ```bash
 ikuai-cli version
+ikuai-cli completion --help
 ikuai-cli completion bash
 ikuai-cli completion zsh
 ikuai-cli completion fish

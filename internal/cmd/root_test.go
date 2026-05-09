@@ -163,6 +163,22 @@ func TestCompletionPowerShellGeneratesScript(t *testing.T) {
 	}
 }
 
+func TestCompletionRejectsUnsupportedShell(t *testing.T) {
+	testRootCommand(t)
+
+	var out bytes.Buffer
+	setRootOutput(t, &out)
+
+	rootCmd.SetArgs([]string{"completion", "elvish"})
+	_, err := rootCmd.ExecuteC()
+	if err == nil {
+		t.Fatal("expected error for unsupported shell, got nil")
+	}
+	if !strings.Contains(err.Error(), `unknown command "elvish"`) {
+		t.Fatalf("error = %q, want unknown command", err.Error())
+	}
+}
+
 func TestRawAndFormatAreMutuallyExclusive(t *testing.T) {
 	testRootCommand(t)
 

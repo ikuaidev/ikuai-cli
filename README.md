@@ -51,8 +51,11 @@ make build
 **Shell completion:**
 
 ```bash
+mkdir -p ~/.local/share/bash-completion/completions
 ikuai-cli completion bash > ~/.local/share/bash-completion/completions/ikuai-cli
+mkdir -p ~/.zsh/completions
 ikuai-cli completion zsh  > ~/.zsh/completions/_ikuai-cli
+mkdir -p ~/.config/fish/completions
 ikuai-cli completion fish > ~/.config/fish/completions/ikuai-cli.fish
 ikuai-cli completion powershell > ikuai-cli.ps1
 ```
