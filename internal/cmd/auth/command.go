@@ -29,6 +29,10 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if urlVal == "" {
 				return &cliapp.ValidationError{Message: "URL is required: use --url or pass as argument"}
 			}
+			urlVal = session.NormalizeBaseURL(urlVal)
+			if urlVal == "" {
+				return &cliapp.ValidationError{Message: "URL is required: use --url or pass as argument"}
+			}
 			if err := session.SaveBaseURL(urlVal); err != nil {
 				return err
 			}

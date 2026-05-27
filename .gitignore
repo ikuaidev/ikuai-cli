@@ -4,6 +4,7 @@ AGENTS.md
 .claude/
 document/
 /web-api-yaml/
+/ikuai-health-dashboard/
 
 # Build artifacts
 dist/

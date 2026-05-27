@@ -55,13 +55,30 @@ func save(s *Session) error {
 	return os.WriteFile(path, data, 0600)
 }
 
-// SaveBaseURL stores the base URL (trailing slash stripped).
+// NormalizeBaseURL stores router API URLs as HTTPS without a trailing slash.
+func NormalizeBaseURL(url string) string {
+	baseURL := strings.TrimRight(strings.TrimSpace(url), "/")
+	if baseURL == "" {
+		return ""
+	}
+	lowerURL := strings.ToLower(baseURL)
+	switch {
+	case strings.HasPrefix(lowerURL, "http://"):
+		return "https://" + baseURL[len("http://"):]
+	case strings.HasPrefix(lowerURL, "https://"):
+		return "https://" + baseURL[len("https://"):]
+	default:
+		return "https://" + baseURL
+	}
+}
+
+// SaveBaseURL stores the base URL as HTTPS (trailing slash stripped).
 func SaveBaseURL(url string) error {
 	s, _ := Load()
 	if s == nil {
 		s = &Session{}
 	}
-	s.BaseURL = strings.TrimRight(url, "/")
+	s.BaseURL = NormalizeBaseURL(url)
 	return save(s)
 }
 
@@ -81,7 +98,7 @@ func SaveLogin(url, token string) error {
 	if s == nil {
 		s = &Session{}
 	}
-	s.BaseURL = strings.TrimRight(url, "/")
+	s.BaseURL = NormalizeBaseURL(url)
 	s.Token = token
 	return save(s)
 }
