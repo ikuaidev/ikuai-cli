@@ -502,7 +502,7 @@ func TestClientAppProtocolsPassesYamlLimit(t *testing.T) {
 	}
 }
 
-func TestClientAppProtocolsDefaultTableUsesReturnedAppnameField(t *testing.T) {
+func TestClientAppProtocolsDefaultTableUsesYamlTrafficFields(t *testing.T) {
 	t.Parallel()
 
 	var out bytes.Buffer
@@ -514,7 +514,46 @@ func TestClientAppProtocolsDefaultTableUsesReturnedAppnameField(t *testing.T) {
 			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
 				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
 			}
-			return jsonResponse(`{"code":0,"message":"ok","data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total":7}]}`), nil
+			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"client-app-protocols", "--ip", "192.168.9.199", "--mac", "08:9b:4b:01:7e:7c", "--page-size", "10"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected table output, got %q", out.String())
+	}
+	headers := strings.Fields(lines[0])
+	wantHeaders := []string{"ID", "APPID", "APPNAME", "CONN_CNT", "UPLOAD", "DOWNLOAD", "TOTAL_UP", "TOTAL_DOWN", "TOTAL"}
+	if strings.Join(headers, ",") != strings.Join(wantHeaders, ",") {
+		t.Fatalf("headers = %v, want %v; output = %q", headers, wantHeaders, out.String())
+	}
+	row := strings.Fields(lines[1])
+	for _, want := range []string{"ChatGPT", "3", "4", "5", "6", "11"} {
+		if !containsField(row, want) {
+			t.Fatalf("row fields = %v, want value %q; output = %q", row, want, out.String())
+		}
+	}
+}
+
+func TestClientAppProtocolsJSONKeepsYamlTrafficFields(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-123"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
+			}
+			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
 		}),
 	})
 
@@ -525,14 +564,46 @@ func TestClientAppProtocolsDefaultTableUsesReturnedAppnameField(t *testing.T) {
 	}
 
 	got := out.String()
-	if !strings.Contains(got, "APPID") || !strings.Contains(got, "12345") {
-		t.Fatalf("default table should show appid value: %q", got)
+	for _, want := range []string{`"upload":3`, `"download":4`, `"total_up":5`, `"total_down":6`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("JSON output = %q, want %s", got, want)
+		}
 	}
-	if !strings.Contains(got, "APPNAME") || !strings.Contains(got, "ChatGPT") {
-		t.Fatalf("default table should show appname value: %q", got)
+	for _, unwanted := range []string{"cur_upload", "cur_download", "total_upload", "total_download"} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("JSON output = %q, did not want synthetic field %q", got, unwanted)
+		}
 	}
-	if strings.Contains(got, "APP_NAME") {
-		t.Fatalf("default table should not use stale app_name column: %q", got)
+}
+
+func TestClientAppProtocolsWideTableKeepsRawYamlFields(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.WideMode = true
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-123"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
+			}
+			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"client-app-protocols", "--ip", "192.168.9.199", "--mac", "08:9b:4b:01:7e:7c", "--page-size", "10"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	for _, want := range []string{"UPLOAD", "DOWNLOAD", "TOTAL_UP", "TOTAL_DOWN"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("wide table output = %q, want raw field %s", got, want)
+		}
 	}
 }
 
@@ -605,6 +676,15 @@ func TestAppProtocolsTerminalsUsesIntegerAppIDAndCleanRequiredHelp(t *testing.T)
 	if got := terminalsCmd.Flags().Lookup("appid").Usage; got != "App protocol ID, e.g. 2580003 (required)" {
 		t.Fatalf("appid usage = %q", got)
 	}
+}
+
+func containsField(fields []string, want string) bool {
+	for _, field := range fields {
+		if field == want {
+			return true
+		}
+	}
+	return false
 }
 
 type roundTripFunc func(req *http.Request) (*http.Response, error)
