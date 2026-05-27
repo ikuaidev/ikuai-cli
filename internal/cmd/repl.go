@@ -198,21 +198,25 @@ func runREPL(_ *cobra.Command, _ []string) error {
 			continue
 		}
 
-		// Reset ALL flags before each REPL command to prevent stale values
-		// from leaking across iterations. MergeDataWithFlags checks f.Changed,
-		// so stale Changed=true bits would silently inject previous values.
-		resetAllFlags(rootCmd)
-
-		// Execute via rootCmd
-		rootCmd.SetArgs(args)
-		if err := rootCmd.Execute(); err != nil {
+		if err := executeREPLCommand(args); err != nil {
 			fmt.Fprintln(os.Stderr, "✗", err)
 		}
-		rootCmd.SetArgs(nil)
 	}
 
 	fmt.Println("Goodbye!")
 	return nil
+}
+
+func executeREPLCommand(args []string) error {
+	// Reset ALL flags before each REPL command to prevent stale values
+	// from leaking across iterations. MergeDataWithFlags checks f.Changed,
+	// so stale Changed=true bits would silently inject previous values.
+	resetAllFlags(rootCmd)
+
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	rootCmd.SetArgs(nil)
+	return err
 }
 
 // splitForCompletion splits the text before the cursor into fully-typed

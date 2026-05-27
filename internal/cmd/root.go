@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -45,10 +44,11 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:          "ikuai-cli",
-	Short:        "iKuai router local API v4.0 CLI",
-	Long:         `CLI for managing an iKuai router via its local REST API (v4.0). Default output is table; use --format json/yaml for machine-friendly output.`,
-	SilenceUsage: true,
+	Use:           "ikuai-cli",
+	Short:         "iKuai router local API v4.0 CLI",
+	Long:          `CLI for managing an iKuai router via its local REST API (v4.0). Default output is table; use --format json/yaml for machine-friendly output.`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	// RunE is set in init() to avoid initialization cycle with repl.go
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		app.Stdout = stdout
@@ -125,19 +125,40 @@ const (
 // Execute runs the root command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		code := classifyError(err)
-		// Non-TTY: emit JSON error envelope to stderr for machine consumers.
-		if os.Getenv("IKUAI_FORCE_TTY") != "1" && !isTerminalWriter(stderr) {
-			envelope := map[string]interface{}{
-				"ok":    false,
-				"error": buildErrorPayload(err, code),
-			}
-			enc := json.NewEncoder(stderr)
-			enc.SetEscapeHTML(false)
-			_ = enc.Encode(envelope)
+		stderrIsTTY := os.Getenv("IKUAI_FORCE_TTY") == "1" || isTerminalWriter(stderr)
+		formatExplicit := rootCmd.PersistentFlags().Changed("format")
+		errorFormat, formatErr := output.FormatFromString(formatStr)
+		if formatErr != nil {
+			errorFormat = output.Table
 		}
-		os.Exit(code)
+		os.Exit(handleExecuteError(err, stderrIsTTY, formatExplicit, errorFormat, stderr))
 	}
+}
+
+func handleExecuteError(err error, stderrIsTTY bool, formatExplicit bool, format output.Format, errWriter io.Writer) int {
+	code := classifyError(err)
+	errorFormat := errorOutputFormat(stderrIsTTY, formatExplicit, format)
+	if errorFormat == output.Table {
+		_, _ = fmt.Fprintln(errWriter, "Error:", err)
+		return code
+	}
+
+	envelope := map[string]interface{}{
+		"ok":    false,
+		"error": buildErrorPayload(err, code),
+	}
+	output.New(errWriter, errWriter, errorFormat).PrintValue(envelope)
+	return code
+}
+
+func errorOutputFormat(stderrIsTTY bool, formatExplicit bool, format output.Format) output.Format {
+	if formatExplicit {
+		return format
+	}
+	if stderrIsTTY {
+		return output.Table
+	}
+	return output.JSON
 }
 
 // classifyError maps an error to an exit code.
