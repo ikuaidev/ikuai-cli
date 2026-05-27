@@ -1,10 +1,19 @@
 package auth
 
 import (
+	"strings"
+
 	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
 	"github.com/ikuaidev/ikuai-cli/internal/session"
 	"github.com/spf13/cobra"
 )
+
+type setURLResult struct {
+	Message    string `json:"message"`
+	BaseURL    string `json:"base_url"`
+	Normalized bool   `json:"normalized"`
+	InputURL   string `json:"input_url,omitempty"`
+}
 
 func New(app *cliapp.Runtime) *cobra.Command {
 	authCmd := &cobra.Command{
@@ -26,20 +35,26 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			if len(args) > 0 && urlVal == "" {
 				urlVal = args[0]
 			}
-			if urlVal == "" {
+			if strings.TrimSpace(urlVal) == "" {
 				return &cliapp.ValidationError{Message: "URL is required: use --url or pass as argument"}
 			}
-			urlVal = session.NormalizeBaseURL(urlVal)
-			if urlVal == "" {
-				return &cliapp.ValidationError{Message: "URL is required: use --url or pass as argument"}
+			inputURL := urlVal
+			baseURL, normalized, err := session.NormalizeBaseURL(urlVal)
+			if err != nil {
+				return &cliapp.ValidationError{Message: invalidRouterURLMessage(err)}
 			}
-			if err := session.SaveBaseURL(urlVal); err != nil {
+			if err := session.SaveBaseURL(baseURL); err != nil {
 				return err
 			}
-			app.PrintJSON(map[string]string{
-				"message":  "Base URL saved",
-				"base_url": urlVal,
-			})
+			result := setURLResult{
+				Message:    "Base URL saved",
+				BaseURL:    baseURL,
+				Normalized: normalized,
+			}
+			if normalized {
+				result.InputURL = safeInputURLForOutput(inputURL)
+			}
+			app.PrintJSON(result)
 			return nil
 		},
 	}
@@ -96,4 +111,16 @@ func New(app *cliapp.Runtime) *cobra.Command {
 
 	authCmd.AddCommand(authSetURLCmd, authSetTokenCmd, authClearCmd, authStatusCmd)
 	return authCmd
+}
+
+func invalidRouterURLMessage(err error) string {
+	return "Invalid router URL.\n\n" + err.Error() + "\n\nTry:\n  ikuai-cli auth set-url 192.168.1.1\n  ikuai-cli auth set-url https://192.168.1.1"
+}
+
+func safeInputURLForOutput(input string) string {
+	input = strings.TrimSpace(input)
+	if strings.ContainsAny(input, "?#@") {
+		return ""
+	}
+	return input
 }
