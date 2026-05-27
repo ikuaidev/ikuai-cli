@@ -514,7 +514,7 @@ func TestClientAppProtocolsDefaultTableUsesYamlTrafficFields(t *testing.T) {
 			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
 				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
 			}
-			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"app_name":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
+			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
 		}),
 	})
 
@@ -529,12 +529,12 @@ func TestClientAppProtocolsDefaultTableUsesYamlTrafficFields(t *testing.T) {
 		t.Fatalf("expected table output, got %q", out.String())
 	}
 	headers := strings.Fields(lines[0])
-	wantHeaders := []string{"ID", "APPID", "APP_NAME", "CONN_CNT", "UPLOAD", "DOWNLOAD", "TOTAL_UP", "TOTAL_DOWN", "TOTAL"}
+	wantHeaders := []string{"ID", "APPID", "APPNAME", "CONN_CNT", "UPLOAD", "DOWNLOAD", "TOTAL_UP", "TOTAL_DOWN", "TOTAL"}
 	if strings.Join(headers, ",") != strings.Join(wantHeaders, ",") {
 		t.Fatalf("headers = %v, want %v; output = %q", headers, wantHeaders, out.String())
 	}
 	row := strings.Fields(lines[1])
-	for _, want := range []string{"3", "4", "5", "6", "11"} {
+	for _, want := range []string{"ChatGPT", "3", "4", "5", "6", "11"} {
 		if !containsField(row, want) {
 			t.Fatalf("row fields = %v, want value %q; output = %q", row, want, out.String())
 		}
@@ -553,7 +553,7 @@ func TestClientAppProtocolsJSONKeepsYamlTrafficFields(t *testing.T) {
 			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
 				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
 			}
-			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"app_name":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
+			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
 		}),
 	})
 
@@ -589,7 +589,7 @@ func TestClientAppProtocolsWideTableKeepsRawYamlFields(t *testing.T) {
 			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
 				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
 			}
-			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"app_name":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
+			return jsonResponse(`{"code":0,"message":"ok","results":{"data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total_up":5,"total_down":6,"total":11}]}}`), nil
 		}),
 	})
 
