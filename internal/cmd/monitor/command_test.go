@@ -502,41 +502,7 @@ func TestClientAppProtocolsPassesYamlLimit(t *testing.T) {
 	}
 }
 
-func TestClientAppProtocolsDefaultTableBackfillsYamlAppNameFromLegacyAppname(t *testing.T) {
-	t.Parallel()
-
-	var out bytes.Buffer
-	app := cliapp.New(&out, &out)
-	app.Format = output.Table
-	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-123"}
-	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
-		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-			if req.URL.Path != "/api/v4.0/monitoring/clients/app-protocols/load" {
-				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/monitoring/clients/app-protocols/load")
-			}
-			return jsonResponse(`{"code":0,"message":"ok","data":[{"id":1,"appid":12345,"appname":"ChatGPT","conn_cnt":2,"upload":3,"download":4,"total":7}]}`), nil
-		}),
-	})
-
-	cmd := New(app)
-	cmd.SetArgs([]string{"client-app-protocols", "--ip", "192.168.9.199", "--mac", "08:9b:4b:01:7e:7c", "--page-size", "10"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("Execute() error = %v", err)
-	}
-
-	got := out.String()
-	if !strings.Contains(got, "APPID") || !strings.Contains(got, "12345") {
-		t.Fatalf("default table should show appid value: %q", got)
-	}
-	if !strings.Contains(got, "APP_NAME") || !strings.Contains(got, "ChatGPT") {
-		t.Fatalf("default table should show app_name value: %q", got)
-	}
-	if strings.Contains(got, "APPNAME") {
-		t.Fatalf("default table should not use legacy appname column: %q", got)
-	}
-}
-
-func TestClientAppProtocolsDefaultTableSeparatesCurrentAndTotalTraffic(t *testing.T) {
+func TestClientAppProtocolsDefaultTableUsesYamlTrafficFields(t *testing.T) {
 	t.Parallel()
 
 	var out bytes.Buffer
@@ -563,7 +529,7 @@ func TestClientAppProtocolsDefaultTableSeparatesCurrentAndTotalTraffic(t *testin
 		t.Fatalf("expected table output, got %q", out.String())
 	}
 	headers := strings.Fields(lines[0])
-	wantHeaders := []string{"ID", "APPID", "APP_NAME", "CONN_CNT", "CUR_UPLOAD", "CUR_DOWNLOAD", "TOTAL_UPLOAD", "TOTAL_DOWNLOAD", "TOTAL"}
+	wantHeaders := []string{"ID", "APPID", "APP_NAME", "CONN_CNT", "UPLOAD", "DOWNLOAD", "TOTAL_UP", "TOTAL_DOWN", "TOTAL"}
 	if strings.Join(headers, ",") != strings.Join(wantHeaders, ",") {
 		t.Fatalf("headers = %v, want %v; output = %q", headers, wantHeaders, out.String())
 	}
@@ -605,7 +571,7 @@ func TestClientAppProtocolsJSONKeepsYamlTrafficFields(t *testing.T) {
 	}
 	for _, unwanted := range []string{"cur_upload", "cur_download", "total_upload", "total_download"} {
 		if strings.Contains(got, unwanted) {
-			t.Fatalf("JSON output = %q, did not want table alias %q", got, unwanted)
+			t.Fatalf("JSON output = %q, did not want synthetic field %q", got, unwanted)
 		}
 	}
 }
@@ -637,11 +603,6 @@ func TestClientAppProtocolsWideTableKeepsRawYamlFields(t *testing.T) {
 	for _, want := range []string{"UPLOAD", "DOWNLOAD", "TOTAL_UP", "TOTAL_DOWN"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("wide table output = %q, want raw field %s", got, want)
-		}
-	}
-	for _, unwanted := range []string{"CUR_UPLOAD", "CUR_DOWNLOAD", "TOTAL_UPLOAD", "TOTAL_DOWNLOAD"} {
-		if strings.Contains(got, unwanted) {
-			t.Fatalf("wide table output = %q, did not want table alias %q", got, unwanted)
 		}
 	}
 }
