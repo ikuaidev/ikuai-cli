@@ -1,10 +1,12 @@
 package monitor
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
 	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
+	"github.com/ikuaidev/ikuai-cli/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -387,7 +389,7 @@ func monitorClientAppProtocolsCmd(app *cliapp.Runtime) *cobra.Command {
 			}
 			ip, _ := cmd.Flags().GetString("ip")
 			mac, _ := cmd.Flags().GetString("mac")
-			app.DefaultColumns = []string{"id", "appid", "appname", "conn_cnt", "upload", "download", "total"}
+			app.DefaultColumns = []string{"id", "appid", "app_name", "conn_cnt", "cur_upload", "cur_download", "total_upload", "total_download", "total"}
 			params := map[string]string{"ip": ip, "mac": mac}
 			if limit, _ := cmd.Flags().GetInt("page-size"); limit > 0 {
 				params["limit"] = intStr(limit)
@@ -396,7 +398,7 @@ func monitorClientAppProtocolsCmd(app *cliapp.Runtime) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			app.PrintRaw(raw)
+			printClientAppProtocolsLoad(app, raw)
 			return nil
 		},
 	}
@@ -405,6 +407,48 @@ func monitorClientAppProtocolsCmd(app *cliapp.Runtime) *cobra.Command {
 	c.Flags().Int("page-size", 20, "Items per page")
 	cliapp.MarkFlagsRequired(c, "ip", "mac")
 	return c
+}
+
+func printClientAppProtocolsLoad(app *cliapp.Runtime, raw json.RawMessage) {
+	if app.Format != output.Table || app.RawMode || app.WideMode {
+		app.PrintRaw(raw)
+		return
+	}
+
+	var payload interface{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		app.PrintRaw(raw)
+		return
+	}
+	addClientAppProtocolDisplayFields(payload)
+	app.PrintJSON(payload)
+}
+
+func addClientAppProtocolDisplayFields(value interface{}) {
+	switch data := value.(type) {
+	case []interface{}:
+		for _, item := range data {
+			addClientAppProtocolDisplayFields(item)
+		}
+	case map[string]interface{}:
+		copyMissingField(data, "app_name", "appname")
+		copyMissingField(data, "cur_upload", "upload")
+		copyMissingField(data, "cur_download", "download")
+		copyMissingField(data, "total_upload", "total_up")
+		copyMissingField(data, "total_download", "total_down")
+		for _, item := range data {
+			addClientAppProtocolDisplayFields(item)
+		}
+	}
+}
+
+func copyMissingField(row map[string]interface{}, dst string, src string) {
+	if _, ok := row[dst]; ok {
+		return
+	}
+	if value, ok := row[src]; ok {
+		row[dst] = value
+	}
 }
 
 func monitorAppTrafficSummaryCmd(app *cliapp.Runtime) *cobra.Command {

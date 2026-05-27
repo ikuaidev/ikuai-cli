@@ -97,6 +97,8 @@ ikuai-cli monitor flow-shunting --type data
 ikuai-cli monitor switch --page 1 --page-size 20 --keyword switch
 ```
 
+`monitor client-app-protocols` table output separates current traffic rate (`CUR_UPLOAD`, `CUR_DOWNLOAD`) from cumulative traffic (`TOTAL_UPLOAD`, `TOTAL_DOWNLOAD`).
+
 ## Network
 
 ```bash

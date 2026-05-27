@@ -58,6 +58,8 @@ ikuai-cli monitor client-protocols-history --format json --ip 192.168.1.100 --ma
 ikuai-cli monitor client-app-protocols --format json --ip 192.168.1.100 --mac 08:9b:4b:01:7e:7c --page-size 10
 ```
 
+`client-app-protocols` JSON/YAML output uses `upload`/`download` for current rate and `total_up`/`total_down` for cumulative traffic. Table output labels these as `CUR_UPLOAD`/`CUR_DOWNLOAD` and `TOTAL_UPLOAD`/`TOTAL_DOWNLOAD`.
+
 ### Application & Protocol
 ```bash
 ikuai-cli monitor protocols --format json            # Protocol distribution
