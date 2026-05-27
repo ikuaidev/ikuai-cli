@@ -3,6 +3,8 @@ package session
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,13 +57,58 @@ func save(s *Session) error {
 	return os.WriteFile(path, data, 0600)
 }
 
-// SaveBaseURL stores the base URL (trailing slash stripped).
+// NormalizeBaseURL stores router API URLs as HTTPS without a path, query, fragment, or trailing slash.
+func NormalizeBaseURL(rawURL string) (string, bool, error) {
+	input := strings.TrimSpace(rawURL)
+	if input == "" {
+		return "", false, fmt.Errorf("missing router host")
+	}
+	if strings.ContainsAny(input, " \t\r\n") {
+		return "", false, fmt.Errorf("invalid router host")
+	}
+
+	baseURL := input
+	lowerURL := strings.ToLower(baseURL)
+	switch {
+	case strings.HasPrefix(lowerURL, "http://"):
+		baseURL = "https://" + baseURL[len("http://"):]
+	case strings.HasPrefix(lowerURL, "https://"):
+		baseURL = "https://" + baseURL[len("https://"):]
+	case strings.Contains(lowerURL, "://"):
+		return "", false, fmt.Errorf("only accepts http or https router URLs")
+	default:
+		baseURL = "https://" + baseURL
+	}
+
+	parsed, err := url.Parse(baseURL)
+	if err != nil {
+		return "", false, fmt.Errorf("invalid router host")
+	}
+	if parsed.User != nil {
+		return "", false, fmt.Errorf("router URL must not include username or password")
+	}
+	if parsed.Host == "" || parsed.Hostname() == "" {
+		return "", false, fmt.Errorf("missing router host")
+	}
+	if strings.ContainsAny(parsed.Host, " \t\r\n") {
+		return "", false, fmt.Errorf("invalid router host")
+	}
+
+	normalized := "https://" + parsed.Host
+	return normalized, normalized != input, nil
+}
+
+// SaveBaseURL stores the base URL as HTTPS (trailing slash stripped).
 func SaveBaseURL(url string) error {
 	s, _ := Load()
 	if s == nil {
 		s = &Session{}
 	}
-	s.BaseURL = strings.TrimRight(url, "/")
+	baseURL, _, err := NormalizeBaseURL(url)
+	if err != nil {
+		return err
+	}
+	s.BaseURL = baseURL
 	return save(s)
 }
 
@@ -81,7 +128,11 @@ func SaveLogin(url, token string) error {
 	if s == nil {
 		s = &Session{}
 	}
-	s.BaseURL = strings.TrimRight(url, "/")
+	baseURL, _, err := NormalizeBaseURL(url)
+	if err != nil {
+		return err
+	}
+	s.BaseURL = baseURL
 	s.Token = token
 	return save(s)
 }
