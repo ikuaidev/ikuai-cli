@@ -2,11 +2,15 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/ikuaidev/ikuai-cli/internal/buildinfo"
+	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
+	"github.com/ikuaidev/ikuai-cli/internal/output"
 	"github.com/ikuaidev/ikuai-cli/internal/session"
+	"gopkg.in/yaml.v3"
 )
 
 func TestAuthStatusWithFormatJSON(t *testing.T) {
@@ -224,6 +228,148 @@ func TestColumnsFlag(t *testing.T) {
 	got := out.String()
 	if !strings.Contains(got, "NAME") || !strings.Contains(got, "VERSION") {
 		t.Fatalf("--columns should show requested columns: %q", got)
+	}
+}
+
+func TestHandleExecuteErrorTTYPrintsSingleHumanError(t *testing.T) {
+	var errOut bytes.Buffer
+	err := &cliapp.ValidationError{Message: "bad input"}
+
+	code := handleExecuteError(err, true, false, output.Table, &errOut)
+
+	if code != ExitValidation {
+		t.Fatalf("exit code = %d, want %d", code, ExitValidation)
+	}
+	got := errOut.String()
+	if strings.Count(got, "Error: bad input") != 1 {
+		t.Fatalf("stderr = %q, want exactly one human error", got)
+	}
+	if strings.Contains(got, `"ok":false`) {
+		t.Fatalf("stderr = %q, did not want JSON envelope for TTY", got)
+	}
+}
+
+func TestHandleExecuteErrorNonTTYPrintsOnlyJSONEnvelope(t *testing.T) {
+	var errOut bytes.Buffer
+	err := &cliapp.ValidationError{Message: "bad input"}
+
+	code := handleExecuteError(err, false, false, output.Table, &errOut)
+
+	if code != ExitValidation {
+		t.Fatalf("exit code = %d, want %d", code, ExitValidation)
+	}
+	got := errOut.String()
+	if strings.Contains(got, "Error:") {
+		t.Fatalf("stderr = %q, did not want cobra-style Error prefix", got)
+	}
+	var envelope struct {
+		OK    bool `json:"ok"`
+		Error struct {
+			Message  string `json:"message"`
+			ExitCode int    `json:"exit_code"`
+			Type     string `json:"type"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(bytes.TrimSpace(errOut.Bytes()), &envelope); err != nil {
+		t.Fatalf("stderr JSON error = %v; stderr = %q", err, got)
+	}
+	if envelope.OK {
+		t.Fatalf("ok = true, want false")
+	}
+	if envelope.Error.Message != "bad input" {
+		t.Fatalf("message = %q, want %q", envelope.Error.Message, "bad input")
+	}
+	if envelope.Error.ExitCode != ExitValidation {
+		t.Fatalf("exit_code = %d, want %d", envelope.Error.ExitCode, ExitValidation)
+	}
+	if envelope.Error.Type != "validation_error" {
+		t.Fatalf("type = %q, want validation_error", envelope.Error.Type)
+	}
+}
+
+func TestHandleExecuteErrorNonTTYExplicitYAMLPrintsYAMLEnvelope(t *testing.T) {
+	var errOut bytes.Buffer
+	err := &cliapp.ValidationError{Message: "bad input"}
+
+	code := handleExecuteError(err, false, true, output.YAML, &errOut)
+
+	if code != ExitValidation {
+		t.Fatalf("exit code = %d, want %d", code, ExitValidation)
+	}
+	got := errOut.String()
+	if strings.Contains(got, "Error:") {
+		t.Fatalf("stderr = %q, did not want human error for explicit YAML", got)
+	}
+	if strings.Contains(got, `{"error"`) {
+		t.Fatalf("stderr = %q, did not want JSON for explicit YAML", got)
+	}
+	var envelope struct {
+		OK    bool `yaml:"ok"`
+		Error struct {
+			Message  string `yaml:"message"`
+			ExitCode int    `yaml:"exit_code"`
+			Type     string `yaml:"type"`
+		} `yaml:"error"`
+	}
+	if err := yaml.Unmarshal(errOut.Bytes(), &envelope); err != nil {
+		t.Fatalf("stderr YAML error = %v; stderr = %q", err, got)
+	}
+	if envelope.OK {
+		t.Fatalf("ok = true, want false")
+	}
+	if envelope.Error.Message != "bad input" {
+		t.Fatalf("message = %q, want %q", envelope.Error.Message, "bad input")
+	}
+	if envelope.Error.ExitCode != ExitValidation {
+		t.Fatalf("exit_code = %d, want %d", envelope.Error.ExitCode, ExitValidation)
+	}
+	if envelope.Error.Type != "validation_error" {
+		t.Fatalf("type = %q, want validation_error", envelope.Error.Type)
+	}
+}
+
+func TestHandleExecuteErrorExplicitJSONPrintsJSONEnvelopeInTTY(t *testing.T) {
+	var errOut bytes.Buffer
+	err := &cliapp.ValidationError{Message: "bad input"}
+
+	code := handleExecuteError(err, true, true, output.JSON, &errOut)
+
+	if code != ExitValidation {
+		t.Fatalf("exit code = %d, want %d", code, ExitValidation)
+	}
+	got := errOut.String()
+	if strings.Contains(got, "Error:") {
+		t.Fatalf("stderr = %q, did not want human error for explicit JSON", got)
+	}
+	var envelope struct {
+		OK    bool `json:"ok"`
+		Error struct {
+			Type string `json:"type"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(bytes.TrimSpace(errOut.Bytes()), &envelope); err != nil {
+		t.Fatalf("stderr JSON error = %v; stderr = %q", err, got)
+	}
+	if envelope.Error.Type != "validation_error" {
+		t.Fatalf("type = %q, want validation_error", envelope.Error.Type)
+	}
+}
+
+func TestRootCommandSilencesCobraErrorPrinting(t *testing.T) {
+	testRootCommand(t)
+
+	var out bytes.Buffer
+	setRootOutput(t, &out)
+
+	rootCmd.SetArgs([]string{"auth", "set-token"})
+	_, err := rootCmd.ExecuteC()
+	if err == nil {
+		t.Fatal("expected auth set-token to fail")
+	}
+
+	got := out.String()
+	if strings.Contains(got, "Error:") {
+		t.Fatalf("stderr = %q, did not want cobra automatic error output", got)
 	}
 }
 

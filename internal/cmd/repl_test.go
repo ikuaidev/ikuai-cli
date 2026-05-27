@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -51,6 +54,27 @@ func TestSplitArgs(t *testing.T) {
 				t.Fatalf("splitArgs(%q) = %#v, want %#v", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestREPLCommandErrorIsPrintedOnce(t *testing.T) {
+	testRootCommand(t)
+	var errOut bytes.Buffer
+	flushStderr := saveREPLStderr(t, &errOut)
+
+	err := executeREPLCommand([]string{"auth", "set-token"})
+	if err == nil {
+		t.Fatal("expected auth set-token to fail")
+	}
+	fmt.Fprintln(os.Stderr, "✗", err)
+	flushStderr()
+
+	got := errOut.String()
+	if strings.Contains(got, "Error:") {
+		t.Fatalf("stderr = %q, did not want cobra automatic error output", got)
+	}
+	if strings.Count(got, "✗ TOKEN is required") != 1 {
+		t.Fatalf("stderr = %q, want exactly one REPL error", got)
 	}
 }
 
@@ -134,6 +158,42 @@ func saveBannerState(t *testing.T, buf *bytes.Buffer) {
 	origStdout, origColor := stdout, useColor
 	stdout = buf
 	t.Cleanup(func() { stdout, useColor = origStdout, origColor })
+}
+
+func saveREPLStderr(t *testing.T, buf *bytes.Buffer) func() {
+	t.Helper()
+
+	oldStderr := os.Stderr
+	readFile, writeFile, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() error = %v", err)
+	}
+	os.Stderr = writeFile
+	t.Cleanup(func() {
+		os.Stderr = oldStderr
+	})
+
+	done := make(chan string, 1)
+	go func() {
+		var captured bytes.Buffer
+		_, _ = io.Copy(&captured, readFile)
+		done <- captured.String()
+	}()
+
+	flushed := false
+	flush := func() {
+		if flushed {
+			return
+		}
+		flushed = true
+		_ = writeFile.Close()
+		buf.WriteString(<-done)
+		_ = readFile.Close()
+		os.Stderr = oldStderr
+	}
+
+	t.Cleanup(flush)
+	return flush
 }
 
 func TestBannerUnauthed(t *testing.T) {
