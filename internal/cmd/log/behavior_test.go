@@ -162,6 +162,139 @@ func TestNoticeLogListUsesEventColumn(t *testing.T) {
 	}
 }
 
+func TestURLVisitsLogListUsesYamlQueryParams(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodGet {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+			}
+			if req.URL.Path != "/api/v4.0/log/url-visits" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/log/url-visits")
+			}
+			q := req.URL.Query()
+			for name, want := range map[string]string{
+				"page":      "2",
+				"limit":     "50",
+				"pattern":   "example.com",
+				"starttime": "1761842000",
+				"stoptime":  "1761843000",
+			} {
+				if got := q.Get(name); got != want {
+					t.Fatalf("%s = %q, want %q; raw=%s", name, got, want, req.URL.RawQuery)
+				}
+			}
+			for _, name := range []string{"filter", "key", "order", "order_by", "page_size"} {
+				if got := q.Get(name); got != "" {
+					t.Fatalf("%s = %q, want empty; raw=%s", name, got, req.URL.RawQuery)
+				}
+			}
+			return jsonResponse(`{"code":0,"message":"Success","results":{"data":[]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"url-visits", "list", "--page", "2", "--page-size", "50", "--pattern", "example.com", "--starttime", "1761842000", "--stoptime", "1761843000"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+}
+
+func TestURLVisitsLogListHelpOnlyExposesYamlFlags(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	cmd := New(app)
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"url-visits", "list", "--help"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	for _, want := range []string{"--page", "--page-size", "--pattern", "--starttime", "--stoptime"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("help output = %q, want flag %s", got, want)
+		}
+	}
+	for _, unwanted := range []string{"--filter", "--key", "--order", "--order-by"} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("help output = %q, did not want unsupported flag %s", got, unwanted)
+		}
+	}
+}
+
+func TestURLVisitsLogDefaultTableUsesYamlFields(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path != "/api/v4.0/log/url-visits" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/log/url-visits")
+			}
+			return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":2001,"timestamp":1761842271,"ip_addr":"192.168.1.100","mac":"08:9b:4b:00:10:6e","host":"www.example.com","uri":"/news/detail?id=1","comment":"office","appname":"browser","icon":"browser","client_model":"ThinkPad","client_type":"PC"}]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"url-visits", "list", "--page", "1", "--page-size", "5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	for _, want := range []string{"ID", "TIMESTAMP", "IP_ADDR", "MAC", "HOST", "URI", "APPNAME", "CLIENT_TYPE", "CLIENT_MODEL", "COMMENT"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("table output = %q, want header %s", got, want)
+		}
+	}
+	for _, want := range []string{"www.example.com", "/news/detail?id=1", "browser", "ThinkPad", "PC"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("table output = %q, want value %s", got, want)
+		}
+	}
+	if strings.Contains(got, "ICON") {
+		t.Fatalf("table output = %q, did not want non-default icon column", got)
+	}
+}
+
+func TestURLVisitsLogClearRequestsDelete(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method != http.MethodDelete {
+				t.Fatalf("method = %q, want %q", req.Method, http.MethodDelete)
+			}
+			if req.URL.String() != "https://router.local/api/v4.0/log/url-visits" {
+				t.Fatalf("URL = %q, want %q", req.URL.String(), "https://router.local/api/v4.0/log/url-visits")
+			}
+			return jsonResponse(`{"code":0,"message":"cleared"}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"url-visits", "delete", "--yes"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+}
+
 func TestSystemLogDeleteRequiresYes(t *testing.T) {
 	t.Parallel()
 

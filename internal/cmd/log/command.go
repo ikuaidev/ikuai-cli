@@ -1,6 +1,8 @@
 package logcmd
 
 import (
+	"strconv"
+
 	"github.com/ikuaidev/ikuai-cli/internal/cliapp"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +23,7 @@ var logResources = []logResource{
 	{name: "ddns", apiPath: "log/ddns", defaultColumns: []string{"id", "timestamp", "domain", "result", "ip_addr", "event"}},
 	{name: "notice", apiPath: "log/notice", defaultColumns: []string{"id", "timestamp", "type", "event", "ip_addr"}},
 	{name: "wireless", apiPath: "log/wireless", defaultColumns: []string{"id", "timestamp", "action", "mac", "apmac", "ssid", "errmsg", "signal"}},
+	{name: "url-visits", apiPath: "log/url-visits", defaultColumns: []string{"id", "timestamp", "ip_addr", "mac", "host", "uri", "appname", "client_type", "client_model", "comment"}},
 }
 
 func New(app *cliapp.Runtime) *cobra.Command {
@@ -55,7 +58,7 @@ func logListCmd(app *cliapp.Runtime, resource logResource) *cobra.Command {
 				return err
 			}
 			app.DefaultColumns = resource.defaultColumns
-			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+resource.apiPath, logListParams(cmd))
+			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+resource.apiPath, logListParams(cmd, resource))
 			if err != nil {
 				return err
 			}
@@ -63,7 +66,7 @@ func logListCmd(app *cliapp.Runtime, resource logResource) *cobra.Command {
 			return nil
 		},
 	}
-	addLogListFlags(c)
+	addLogListFlags(c, resource)
 	return c
 }
 
@@ -92,8 +95,14 @@ func logDeleteCmd(app *cliapp.Runtime, resource logResource) *cobra.Command {
 	return c
 }
 
-func addLogListFlags(cmd *cobra.Command) {
+func addLogListFlags(cmd *cobra.Command, resource logResource) {
 	cliapp.AddPaginationFlags(cmd)
+	if resource.name == "url-visits" {
+		cmd.Flags().String("pattern", "", "Search pattern")
+		cmd.Flags().Int64("starttime", 0, "Start Unix timestamp")
+		cmd.Flags().Int64("stoptime", 0, "Stop Unix timestamp")
+		return
+	}
 	cmd.Flags().String("filter", "", "Filter expression")
 	cmd.Flags().String("key", "", "Fields for fuzzy search")
 	cmd.Flags().String("pattern", "", "Fuzzy search pattern")
@@ -104,10 +113,23 @@ func addLogListFlags(cmd *cobra.Command) {
 	})
 }
 
-func logListParams(cmd *cobra.Command) map[string]string {
+func logListParams(cmd *cobra.Command, resource logResource) map[string]string {
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("page-size")
 	params := cliapp.ListParamsWithPageSizeKey(page, pageSize, "", "", "", "limit")
+	if resource.name == "url-visits" {
+		pattern, _ := cmd.Flags().GetString("pattern")
+		if pattern != "" {
+			params["pattern"] = pattern
+		}
+		if starttime, _ := cmd.Flags().GetInt64("starttime"); starttime > 0 {
+			params["starttime"] = strconv.FormatInt(starttime, 10)
+		}
+		if stoptime, _ := cmd.Flags().GetInt64("stoptime"); stoptime > 0 {
+			params["stoptime"] = strconv.FormatInt(stoptime, 10)
+		}
+		return params
+	}
 	for _, name := range []string{"filter", "key", "pattern", "order", "order-by"} {
 		value, _ := cmd.Flags().GetString(name)
 		if value == "" {
