@@ -315,7 +315,10 @@ ikuai-cli log web list
 ikuai-cli log ddns list
 ikuai-cli log notice list
 ikuai-cli log wireless list
+ikuai-cli log url-visits list --page 1 --page-size 20
+ikuai-cli log url-visits list --pattern example.com --starttime 1761842000 --stoptime 1761843000
 ikuai-cli log system delete --yes
+ikuai-cli log url-visits delete --yes
 ```
 
 ## Wireless
