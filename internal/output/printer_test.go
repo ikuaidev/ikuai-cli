@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // --- Format parsing ---
@@ -906,4 +908,32 @@ func TestSingleLineCellNoExtraBlanks(t *testing.T) {
 			t.Fatalf("unexpected blank line at position %d in single-line table: %q", i, got)
 		}
 	}
+}
+
+func TestTableAlignsColumnsWithWideCharacters(t *testing.T) {
+	var out bytes.Buffer
+	p := New(&out, &out, Table)
+	p.Columns = []string{"id", "appname", "client_type"}
+	p.Print(json.RawMessage(`[{"id":1,"appname":"谷歌通用协议","client_type":"Windows10"},{"id":2,"appname":"HTTPS","client_type":"Windows10"}]`))
+
+	got := out.String()
+	lines := strings.Split(strings.TrimSpace(got), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("table lines = %d, want 3: %q", len(lines), got)
+	}
+
+	want := displayColumnStart(lines[0], "CLIENT_TYPE")
+	for _, line := range lines[1:] {
+		if gotStart := displayColumnStart(line, "Windows10"); gotStart != want {
+			t.Fatalf("CLIENT_TYPE column is not aligned:\n%s\nline %q starts at %d, want %d", got, line, gotStart, want)
+		}
+	}
+}
+
+func displayColumnStart(line, marker string) int {
+	idx := strings.Index(line, marker)
+	if idx < 0 {
+		return -1
+	}
+	return runewidth.StringWidth(line[:idx])
 }
