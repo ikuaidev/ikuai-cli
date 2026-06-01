@@ -23,7 +23,7 @@ var logResources = []logResource{
 	{name: "ddns", apiPath: "log/ddns", defaultColumns: []string{"id", "timestamp", "domain", "result", "ip_addr", "event"}},
 	{name: "notice", apiPath: "log/notice", defaultColumns: []string{"id", "timestamp", "type", "event", "ip_addr"}},
 	{name: "wireless", apiPath: "log/wireless", defaultColumns: []string{"id", "timestamp", "action", "mac", "apmac", "ssid", "errmsg", "signal"}},
-	{name: "url-visits", apiPath: "log/url-visits", defaultColumns: []string{"id", "timestamp", "ip_addr", "mac", "host", "uri", "appname", "client_type", "client_model", "comment"}},
+	{name: "url-visits", apiPath: "log/url-visits", defaultColumns: []string{"id", "host", "uri", "appname", "client_type", "timestamp", "ip_addr", "mac", "client_model", "comment"}},
 }
 
 func New(app *cliapp.Runtime) *cobra.Command {

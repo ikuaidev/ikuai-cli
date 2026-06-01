@@ -9,6 +9,8 @@ import (
 	"text/tabwriter"
 	"time"
 	"unicode"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // renderTable auto-detects the shape of v and prints a human-readable table.
@@ -66,20 +68,19 @@ func renderArrayTable(w io.Writer, items []interface{}, humanTime bool, columns 
 		keys, hidden = autoFitColumns(keys, items, humanTime, termWidth)
 	}
 
-	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-
 	// Header row.
 	headers := make([]string, len(keys))
 	for i, k := range keys {
 		headers[i] = toUpperSnakeCase(k)
 	}
-	_, _ = fmt.Fprintln(tw, strings.Join(headers, "\t"))
+	widths := tableColumnWidths(headers, items, keys, humanTime)
+	writeTableLine(w, headers, widths)
 
 	// Data rows — handle multi-line cells by splitting into sub-rows.
 	for _, item := range items {
 		obj, ok := item.(map[string]interface{})
 		if !ok {
-			_, _ = fmt.Fprintln(tw, formatCell(item))
+			_, _ = fmt.Fprintln(w, formatCell(item))
 			continue
 		}
 		cells := make([]string, len(keys))
@@ -95,7 +96,7 @@ func renderArrayTable(w io.Writer, items []interface{}, humanTime bool, columns 
 			}
 		}
 		if maxLines == 1 {
-			_, _ = fmt.Fprintln(tw, strings.Join(cells, "\t"))
+			writeTableLine(w, cells, widths)
 		} else {
 			// Split multi-line cells into sub-rows.
 			splitCells := make([][]string, len(cells))
@@ -109,17 +110,58 @@ func renderArrayTable(w io.Writer, items []interface{}, humanTime bool, columns 
 						parts[i] = splitCells[i][row]
 					}
 				}
-				_, _ = fmt.Fprintln(tw, strings.Join(parts, "\t"))
+				writeTableLine(w, parts, widths)
 			}
 			// Blank separator line after multi-line logical row.
-			_, _ = fmt.Fprintln(tw)
+			_, _ = fmt.Fprintln(w)
 		}
 	}
-	_ = tw.Flush()
 
 	if hidden > 0 {
 		_, _ = fmt.Fprintf(w, "(%d columns hidden, use --wide to see all)\n", hidden)
 	}
+}
+
+func tableColumnWidths(headers []string, items []interface{}, keys []string, humanTime bool) []int {
+	widths := make([]int, len(keys))
+	for i, header := range headers {
+		widths[i] = displayWidth(header)
+	}
+	for _, item := range items {
+		obj, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for i, k := range keys {
+			var cell string
+			if humanTime && k == "timestamp" {
+				cell = formatTimestamp(obj[k])
+			} else {
+				cell = formatCell(obj[k])
+			}
+			for _, line := range strings.Split(cell, "\n") {
+				if width := displayWidth(line); width > widths[i] {
+					widths[i] = width
+				}
+			}
+		}
+	}
+	return widths
+}
+
+func writeTableLine(w io.Writer, cells []string, widths []int) {
+	for i, cell := range cells {
+		if i > 0 {
+			_, _ = io.WriteString(w, "  ")
+		}
+		_, _ = io.WriteString(w, cell)
+		if i < len(cells)-1 {
+			if padding := widths[i] - displayWidth(cell); padding > 0 {
+				_, _ = io.WriteString(w, strings.Repeat(" ", padding))
+			}
+		}
+	}
+	_, _ = io.WriteString(w, "\n")
 }
 
 // renderObjectTable prints a single object as a vertical KEY | VALUE table.
@@ -516,7 +558,7 @@ func autoFitColumns(keys []string, items []interface{}, humanTime bool, termWidt
 	// Calculate max width per column (header vs cell values).
 	widths := make([]int, len(keys))
 	for i, k := range keys {
-		widths[i] = len(toUpperSnakeCase(k))
+		widths[i] = displayWidth(toUpperSnakeCase(k))
 	}
 	for _, item := range items {
 		obj, ok := item.(map[string]interface{})
@@ -532,8 +574,8 @@ func autoFitColumns(keys []string, items []interface{}, humanTime bool, termWidt
 			}
 			// For multi-line cells, use the longest line's width (not total string length).
 			for _, line := range strings.Split(cell, "\n") {
-				if len(line) > widths[i] {
-					widths[i] = len(line)
+				if width := displayWidth(line); width > widths[i] {
+					widths[i] = width
 				}
 			}
 		}
@@ -560,6 +602,10 @@ func autoFitColumns(keys []string, items []interface{}, humanTime bool, termWidt
 		return keys, 0
 	}
 	return keys[:fit], len(keys) - fit
+}
+
+func displayWidth(s string) int {
+	return runewidth.StringWidth(s)
 }
 
 // toUpperSnakeCase converts a JSON key to UPPER_SNAKE_CASE.

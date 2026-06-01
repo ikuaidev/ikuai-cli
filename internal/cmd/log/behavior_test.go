@@ -269,6 +269,40 @@ func TestURLVisitsLogDefaultTableUsesYamlFields(t *testing.T) {
 	}
 }
 
+func TestURLVisitsLogDefaultTablePrioritizesVisitedURLAndAppNameInNarrowTTY(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.Table
+	app.TermWidth = 70
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "token-log"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			if req.URL.Path != "/api/v4.0/log/url-visits" {
+				t.Fatalf("path = %q, want %q", req.URL.Path, "/api/v4.0/log/url-visits")
+			}
+			return jsonResponse(`{"code":0,"message":"Success","results":{"data":[{"id":2001,"timestamp":1761842271,"ip_addr":"192.168.1.100","mac":"08:9b:4b:00:10:6e","host":"www.example.com","uri":"/news/detail?id=1","comment":"office","appname":"browser","icon":"browser","client_model":"ThinkPad","client_type":"PC"}]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"url-visits", "list", "--page", "1", "--page-size", "5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	got := out.String()
+	for _, want := range []string{"HOST", "URI", "APPNAME", "CLIENT_TYPE", "www.example.com", "/news/detail?id=1", "browser", "PC"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("narrow table output = %q, want field/value %s", got, want)
+		}
+	}
+	if !strings.Contains(got, "columns hidden") {
+		t.Fatalf("narrow table output = %q, want auto-fit hidden columns hint", got)
+	}
+}
+
 func TestURLVisitsLogClearRequestsDelete(t *testing.T) {
 	t.Parallel()
 
