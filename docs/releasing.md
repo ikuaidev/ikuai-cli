@@ -66,5 +66,6 @@ Supported targets:
 
 - Linux `amd64`
 - Linux `arm64`
+- Linux `armv7`
 - Darwin `amd64`
 - Darwin `arm64`

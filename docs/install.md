@@ -7,7 +7,8 @@ Download a prebuilt binary from the [Releases page](https://github.com/ikuaidev/
 ### Linux / macOS
 
 ```bash
-# Replace VERSION and ARCH as needed (amd64 or arm64)
+# Replace VERSION and ARCH as needed:
+# linux_amd64, linux_arm64, linux_armv7, darwin_amd64, or darwin_arm64
 VERSION=0.1.0
 ARCH=linux_amd64
 
