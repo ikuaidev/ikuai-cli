@@ -38,6 +38,7 @@ esac
 case "$ARCH" in
   x86_64|amd64)   ARCH="amd64" ;;
   aarch64|arm64)   ARCH="arm64" ;;
+  armv7l|armv7)    ARCH="armv7" ;;
   *)               echo "Error: unsupported architecture: $ARCH"; exit 1 ;;
 esac
 

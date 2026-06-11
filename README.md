@@ -31,6 +31,7 @@ go install github.com/ikuaidev/ikuai-cli/cmd/ikuai-cli@latest
 
 ```bash
 VERSION=0.1.0 ARCH=linux_amd64
+# ARM32 Linux uses ARCH=linux_armv7
 curl -fsSL "https://github.com/ikuaidev/ikuai-cli/releases/download/v${VERSION}/ikuai-cli_${ARCH}.tar.gz" -o ikuai-cli.tar.gz
 curl -fsSL "https://github.com/ikuaidev/ikuai-cli/releases/download/v${VERSION}/checksums.txt" -o checksums.txt
 sha256sum --check --ignore-missing checksums.txt
@@ -215,7 +216,7 @@ make smoke      # smoke test
 Cross-compile:
 
 ```bash
-make linux-amd64    make linux-arm64
+make linux-amd64    make linux-arm64    make linux-armv7
 make darwin-amd64   make darwin-arm64
 ```
 
