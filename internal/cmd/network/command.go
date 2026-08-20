@@ -374,7 +374,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			app.DefaultColumns = []string{"id", "ip_addr", "mac", "hostname", "interface", "status", "timeout"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/clients",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -655,7 +655,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp6/clients",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
