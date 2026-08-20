@@ -99,6 +99,57 @@ func TestWANListUsesConfigEndpointWithoutPagination(t *testing.T) {
 	}
 }
 
+func TestDHCPClientsUseLimitQueryParam(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		path string
+	}{
+		{name: "DHCPv4", args: []string{"dhcp", "clients"}, path: "/api/v4.0/network/dhcp/clients"},
+		{name: "DHCPv6", args: []string{"dhcp6", "clients"}, path: "/api/v4.0/network/dhcp6/clients"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var out bytes.Buffer
+			app := cliapp.New(&out, &out)
+			app.Format = output.JSON
+			app.Session = &session.Session{BaseURL: "https://router.local", Token: "test-token"}
+			app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+				Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+					if req.Method != http.MethodGet {
+						t.Fatalf("method = %q, want %q", req.Method, http.MethodGet)
+					}
+					if req.URL.Path != tt.path {
+						t.Fatalf("path = %q, want %q", req.URL.Path, tt.path)
+					}
+					query := req.URL.Query()
+					if got := query.Get("page"); got != "2" {
+						t.Fatalf("page = %q, want %q", got, "2")
+					}
+					if got := query.Get("limit"); got != "50" {
+						t.Fatalf("limit = %q, want %q", got, "50")
+					}
+					if query.Has("page_size") {
+						t.Fatalf("page_size should not be sent: %s", req.URL.RawQuery)
+					}
+					return jsonResponse(`{"code":0,"results":{"total":0,"data":[]}}`), nil
+				}),
+			})
+
+			cmd := New(app)
+			cmd.SetArgs(append(tt.args, "--page", "2", "--page-size", "50"))
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("Execute() error = %v", err)
+			}
+		})
+	}
+}
+
 func TestDHCPCreateMissingRequiredFlags(t *testing.T) {
 	t.Parallel()
 	var out bytes.Buffer
