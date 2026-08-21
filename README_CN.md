@@ -122,6 +122,7 @@ ikuai-cli log system list --human-time       # 系统日志
 - **日志** — 系统日志和审计记录
 - **交互模式** — `repl` 模式，支持多级 Tab 补全
 - **结构化输出** — 默认表格；支持 `--format json/yaml`、`--raw`；`--human-time` 显示可读时间；`--wide` / `--columns` 控制列显示
+- **统一分页参数** — 列表命令统一使用 `--page` / `--page-size`，内部按各 API 契约适配 query 参数
 
 ## 输出格式
 

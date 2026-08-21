@@ -23,12 +23,12 @@ func ParseJSON(s string) (interface{}, error) {
 }
 
 func ListParams(page, pageSize int, filter, order, orderBy string) map[string]string {
-	return ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "page_size")
+	return ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit")
 }
 
 func ListParamsWithPageSizeKey(page, pageSize int, filter, order, orderBy, pageSizeKey string) map[string]string {
 	if pageSizeKey == "" {
-		pageSizeKey = "page_size"
+		pageSizeKey = "limit"
 	}
 	p := map[string]string{
 		"page":      fmt.Sprint(page),

@@ -122,6 +122,7 @@ ikuai-cli log system list --human-time       # System logs
 - **Log** — system logs and audit trails
 - **Interactive shell** — `repl` mode with multi-level tab completion
 - **Structured output** — table by default; `--format json/yaml` or `--raw` for machines; `--human-time` for timestamps; `--wide` / `--columns` for column control
+- **Consistent pagination** — collection commands use `--page` / `--page-size` while adapting to each API's query contract
 
 ## Output
 

@@ -140,7 +140,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dns/proxy/rules",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -240,7 +240,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			app.DefaultColumns = []string{"id", "interface", "addr_pool", "gateway", "netmask", "dns1", "lease", "enabled"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/services",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -396,7 +396,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			app.DefaultColumns = []string{"id", "tagname", "ip_addr", "mac", "interface", "gateway", "hostname", "enabled"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/static",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -551,7 +551,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			app.DefaultColumns = []string{"id", "tagname", "mac", "ip_type", "enabled", "comment"}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp/access-control/rules",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -725,7 +725,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/dhcp6/access-control/rules",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, order, orderBy, "limit"))
 			if err != nil {
 				return err
 			}
@@ -829,9 +829,19 @@ func New(app *cliapp.Runtime) *cobra.Command {
 				return err
 			}
 			app.DefaultColumns = []string{"id", "vlan_name", "vlan_id", "interface", "ip_addr", "netmask", "enabled"}
-			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			page, pageSize, _, _, _ := cliapp.GetListParams(cmd)
+			key, _ := cmd.Flags().GetString("key")
+			pattern, _ := cmd.Flags().GetString("pattern")
+			filter, _ := cmd.Flags().GetString("filter")
+			params := cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, "", "", "limit")
+			if key != "" {
+				params["key"] = key
+			}
+			if pattern != "" {
+				params["pattern"] = pattern
+			}
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/network/vlan",
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				params)
 			if err != nil {
 				return err
 			}
@@ -1024,7 +1034,7 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		networkDNSProxyUpdateCmd,
 		networkDNSProxyDeleteCmd,
 	)
-	cliapp.AddListFlags(networkDNSProxyListCmd)
+	cliapp.AddPaginationFlags(networkDNSProxyListCmd)
 	for _, c := range []*cobra.Command{networkDNSSetCmd, networkDNSProxyCreateCmd, networkDNSProxyUpdateCmd} {
 		c.Flags().String("data", "{}", "JSON body")
 	}
@@ -1173,7 +1183,10 @@ func New(app *cliapp.Runtime) *cobra.Command {
 		networkVLANToggleCmd,
 		networkVLANDeleteCmd,
 	)
-	cliapp.AddListFlags(networkVLANListCmd)
+	cliapp.AddPaginationFlags(networkVLANListCmd)
+	networkVLANListCmd.Flags().String("key", "", "Search field")
+	networkVLANListCmd.Flags().String("pattern", "", "Search pattern")
+	networkVLANListCmd.Flags().String("filter", "", "Filter: field==value, & for AND, comma for OR")
 	for _, c := range []*cobra.Command{networkVLANCreateCmd, networkVLANUpdateCmd, networkVLANToggleCmd} {
 		c.Flags().String("data", "{}", "JSON body")
 	}
@@ -1952,9 +1965,9 @@ func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[stri
 			if len(o.defaultColumns) > 0 {
 				app.DefaultColumns = o.defaultColumns
 			}
-			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
+			page, pageSize, _, _, _ := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath,
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, "", "", "", "limit"))
 			if err != nil {
 				return err
 			}
@@ -1962,7 +1975,7 @@ func natGroup(app *cliapp.Runtime, use, short, apiPath string, fieldMap map[stri
 			return nil
 		},
 	}
-	cliapp.AddListFlags(listCmd)
+	cliapp.AddPaginationFlags(listCmd)
 
 	createCmd := natWriteCmd(app, "create", "Create a "+use+" rule", false, apiPath, fieldMap, o.createDefaults, o.addrFields, nil,
 		o.requiredCreateFlags,

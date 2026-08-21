@@ -34,7 +34,7 @@ ikuai-cli network dhcp start --format json
 ikuai-cli network dhcp stop --format json
 
 # 静态绑定
-ikuai-cli network dhcp static list --format json
+ikuai-cli network dhcp static list --page 1 --page-size 50 --format json
 ikuai-cli network dhcp static create --name "Printer" --ip "192.168.1.50" --mac "AA:BB:CC:DD:EE:FF" --interface lan1 --gateway "192.168.1.1" --format json
 ikuai-cli network dhcp static update <ID> --dns1 "223.5.5.5" --comment "printer" --format json
 ikuai-cli network dhcp static toggle <ID> --enabled no --format json
@@ -70,7 +70,7 @@ ikuai-cli network physical list --format json
 ## VLAN
 
 ```bash
-ikuai-cli network vlan list --format json
+ikuai-cli network vlan list --key vlan_name --pattern IoT --filter 'enabled==yes' --format json
 ikuai-cli network vlan create --name "IoT" --vlan-id 100 --interface lan1 --ip "10.0.100.1" --netmask "255.255.255.0" --format json
 ikuai-cli network vlan update <ID> --comment "iot vlan" --format json
 ikuai-cli network vlan toggle <ID> --enabled no --format json

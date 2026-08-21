@@ -32,17 +32,11 @@ func TestNatListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "2" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "2")
 			}
-			if q.Get("page_size") != "50" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "50")
+			if q.Get("limit") != "50" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "50")
 			}
-			if q.Get("filter") != "enabled==true" {
-				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==true")
-			}
-			if q.Get("order") != "asc" {
-				t.Fatalf("order = %q, want %q", q.Get("order"), "asc")
-			}
-			if q.Get("order_by") != "id" {
-				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "id")
+			if q.Has("page_size") || q.Has("filter") || q.Has("order") || q.Has("order_by") {
+				t.Fatalf("unsupported query params sent: %s", req.URL.RawQuery)
 			}
 			if got := req.Header.Get("Authorization"); got != "Bearer token-abc" {
 				t.Fatalf("Authorization = %q, want %q", got, "Bearer token-abc")
@@ -52,7 +46,7 @@ func TestNatListBuildsExpectedQueryParams(t *testing.T) {
 	})
 
 	cmd := New(app)
-	cmd.SetArgs([]string{"nat", "list", "--page", "2", "--page-size", "50", "--filter", "enabled==true", "--order", "asc", "--order-by", "id"})
+	cmd.SetArgs([]string{"nat", "list", "--page", "2", "--page-size", "50"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -99,7 +93,7 @@ func TestWANListUsesConfigEndpointWithoutPagination(t *testing.T) {
 	}
 }
 
-func TestDHCPClientsUseLimitQueryParam(t *testing.T) {
+func TestNetworkListsUseLimitQueryParam(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -107,8 +101,13 @@ func TestDHCPClientsUseLimitQueryParam(t *testing.T) {
 		args []string
 		path string
 	}{
+		{name: "DNS proxy", args: []string{"dns", "proxy", "list"}, path: "/api/v4.0/network/dns/proxy/rules"},
+		{name: "DHCP services", args: []string{"dhcp", "list"}, path: "/api/v4.0/network/dhcp/services"},
 		{name: "DHCPv4", args: []string{"dhcp", "clients"}, path: "/api/v4.0/network/dhcp/clients"},
 		{name: "DHCPv6", args: []string{"dhcp6", "clients"}, path: "/api/v4.0/network/dhcp6/clients"},
+		{name: "DHCP static", args: []string{"dhcp", "static", "list"}, path: "/api/v4.0/network/dhcp/static"},
+		{name: "DHCP access", args: []string{"dhcp", "access-rule", "list"}, path: "/api/v4.0/network/dhcp/access-control/rules"},
+		{name: "DHCPv6 access", args: []string{"dhcp6", "access-rule", "list"}, path: "/api/v4.0/network/dhcp6/access-control/rules"},
 	}
 
 	for _, tt := range tests {
@@ -147,6 +146,41 @@ func TestDHCPClientsUseLimitQueryParam(t *testing.T) {
 				t.Fatalf("Execute() error = %v", err)
 			}
 		})
+	}
+}
+
+func TestVLANListUsesYAMLQueryParams(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+	app := cliapp.New(&out, &out)
+	app.Format = output.JSON
+	app.Session = &session.Session{BaseURL: "https://router.local", Token: "test-token"}
+	app.APIClient = api.NewWithHTTPClient(app.Session.BaseURL, app.Session.Token, &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			query := req.URL.Query()
+			want := map[string]string{
+				"page": "2", "limit": "50", "key": "vlan_name",
+				"pattern": "office", "filter": "enabled==yes",
+			}
+			for key, value := range want {
+				if got := query.Get(key); got != value {
+					t.Fatalf("%s = %q, want %q", key, got, value)
+				}
+			}
+			for _, unsupported := range []string{"page_size", "order", "order_by"} {
+				if query.Has(unsupported) {
+					t.Fatalf("unsupported %s query sent: %s", unsupported, req.URL.RawQuery)
+				}
+			}
+			return jsonResponse(`{"code":0,"results":{"total":0,"data":[]}}`), nil
+		}),
+	})
+
+	cmd := New(app)
+	cmd.SetArgs([]string{"vlan", "list", "--page", "2", "--page-size", "50", "--key", "vlan_name", "--pattern", "office", "--filter", "enabled==yes"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
 	}
 }
 
