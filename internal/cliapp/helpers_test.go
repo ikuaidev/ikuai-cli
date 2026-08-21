@@ -168,14 +168,24 @@ func TestAddListFlags(t *testing.T) {
 
 func TestListParams(t *testing.T) {
 	p := ListParams(2, 50, "enabled==yes", "desc", "name")
-	if p["page"] != "2" || p["page_size"] != "50" {
-		t.Fatalf("page/page_size wrong: %v", p)
+	if p["page"] != "2" || p["limit"] != "50" {
+		t.Fatalf("page/limit wrong: %v", p)
 	}
 	if p["filter"] != "enabled==yes" {
 		t.Fatalf("filter = %v", p["filter"])
 	}
 	if p["order"] != "desc" || p["order_by"] != "name" {
 		t.Fatalf("order/order_by wrong: %v", p)
+	}
+}
+
+func TestListParamsWithEmptyPageSizeKeyDefaultsToLimit(t *testing.T) {
+	p := ListParamsWithPageSizeKey(1, 20, "", "", "", "")
+	if p["limit"] != "20" {
+		t.Fatalf("limit = %q, want 20: %v", p["limit"], p)
+	}
+	if _, ok := p["page_size"]; ok {
+		t.Fatalf("page_size should not be present: %v", p)
 	}
 }
 

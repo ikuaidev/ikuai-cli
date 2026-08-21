@@ -436,7 +436,7 @@ func addSecCRUD(app *cliapp.Runtime, grp *cobra.Command, apiPath string, withGet
 			}
 			page, pageSize, filter, order, orderBy := cliapp.GetListParams(cmd)
 			raw, err := app.APIClient.Get(cliapp.APIBase+"/"+apiPath,
-				cliapp.ListParams(page, pageSize, filter, order, orderBy))
+				cliapp.ListParamsWithPageSizeKey(page, pageSize, filter, orderBy, order, "limit"))
 			if err != nil {
 				return err
 			}

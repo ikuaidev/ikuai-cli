@@ -54,3 +54,37 @@ func TestNewRegistersExpectedNetworkCommands(t *testing.T) {
 		})
 	}
 }
+
+func TestYAMLListFlags(t *testing.T) {
+	t.Parallel()
+
+	cmd := New(cliapp.New(io.Discard, io.Discard))
+	checks := []struct {
+		name string
+		args []string
+		want []string
+		have []string
+	}{
+		{name: "DNS proxy", args: []string{"dns", "proxy", "list"}, want: []string{"page", "page-size"}, have: []string{"filter", "order", "order-by"}},
+		{name: "NAT", args: []string{"nat", "list"}, want: []string{"page", "page-size"}, have: []string{"filter", "order", "order-by"}},
+		{name: "VLAN", args: []string{"vlan", "list"}, want: []string{"page", "page-size", "key", "pattern", "filter"}, have: []string{"order", "order-by"}},
+	}
+	for _, tt := range checks {
+		t.Run(tt.name, func(t *testing.T) {
+			found, _, err := cmd.Find(tt.args)
+			if err != nil {
+				t.Fatalf("Find(%v) error = %v", tt.args, err)
+			}
+			for _, flag := range tt.want {
+				if found.Flags().Lookup(flag) == nil {
+					t.Errorf("missing flag %q", flag)
+				}
+			}
+			for _, flag := range tt.have {
+				if found.Flags().Lookup(flag) != nil {
+					t.Errorf("unexpected flag %q", flag)
+				}
+			}
+		})
+	}
+}

@@ -32,17 +32,17 @@ func TestACLListBuildsExpectedQueryParams(t *testing.T) {
 			if q.Get("page") != "7" {
 				t.Fatalf("page = %q, want %q", q.Get("page"), "7")
 			}
-			if q.Get("page_size") != "12" {
-				t.Fatalf("page_size = %q, want %q", q.Get("page_size"), "12")
+			if q.Get("limit") != "12" {
+				t.Fatalf("limit = %q, want %q", q.Get("limit"), "12")
 			}
 			if q.Get("filter") != "enabled==yes" {
 				t.Fatalf("filter = %q, want %q", q.Get("filter"), "enabled==yes")
 			}
-			if q.Get("order") != "desc" {
-				t.Fatalf("order = %q, want %q", q.Get("order"), "desc")
+			if q.Get("order") != "id" {
+				t.Fatalf("order = %q, want %q", q.Get("order"), "id")
 			}
-			if q.Get("order_by") != "id" {
-				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "id")
+			if q.Get("order_by") != "desc" {
+				t.Fatalf("order_by = %q, want %q", q.Get("order_by"), "desc")
 			}
 			if got := req.Header.Get("Authorization"); got != "Bearer token-sec" {
 				t.Fatalf("Authorization = %q, want %q", got, "Bearer token-sec")
@@ -61,6 +61,20 @@ func TestACLListBuildsExpectedQueryParams(t *testing.T) {
 	want := `{"items":[]}` + "\n"
 	if got != want {
 		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestMACListExposesYAMLSortFlags(t *testing.T) {
+	t.Parallel()
+	cmd := New(cliapp.New(io.Discard, io.Discard))
+	found, _, err := cmd.Find([]string{"mac", "list"})
+	if err != nil {
+		t.Fatalf("Find() error = %v", err)
+	}
+	for _, flag := range []string{"page", "page-size", "filter", "order", "order-by"} {
+		if found.Flags().Lookup(flag) == nil {
+			t.Errorf("missing flag %q", flag)
+		}
 	}
 }
 

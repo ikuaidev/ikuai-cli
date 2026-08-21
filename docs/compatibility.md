@@ -18,7 +18,7 @@ Current contract assumptions:
 - authentication is Bearer token-based (`Authorization: Bearer <token>`)
 - many resource collections use shared pagination fields:
   - `page`
-  - `page_size`
+  - `limit` (exposed by the CLI as `--page-size`)
   - `filter`
   - `order`
   - `order_by`
